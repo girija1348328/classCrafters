@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  users       User[]
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  name          String
+  email         String    @unique
+  password_hash String
+  role_id       Int
+  role          Role      @relation(fields: [role_id], references: [id])
+  studentRegs   StudentRegistration[]
+  staffRegs     StaffRegistration[]
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+}
+
+model EducationType {
+  id            Int           @id @default(autoincrement())
+  name          String
+  institutions  Institution[]
+}
+
+model Location {
+  id            Int           @id @default(autoincrement())
+  name          String
+  address       String?
+  city          String?
+  state         String?
+  country       String?
+  zipcode       String?
+  institutions  Institution[]
+}
+
+model Institution {
+  id                 Int                 @id @default(autoincrement())
+  name               String
+  education_type_id  Int
+  location_id        Int
+  educationType      EducationType       @relation(fields: [education_type_id], references: [id])
+  location           Location            @relation(fields: [location_id], references: [id])
+  studentRegs        StudentRegistration[]
+  staffRegs          StaffRegistration[]
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+}
+
+model Phase {
+  id               Int                   @id @default(autoincrement())
+  name             String
+  description      String?
+  studentRegs      StudentRegistration[]
+}
+
+model MainGroup {
+  id               Int                   @id @default(autoincrement())
+  name             String
+  description      String?
+  subGroups        SubGroup[]
+}
+
+model SubGroup {
+  id               Int                   @id @default(autoincrement())
+  name             String
+  main_group_id    Int
+  mainGroup        MainGroup              @relation(fields: [main_group_id], references: [id])
+  studentRegs      StudentRegistration[]
+}
+
+model CustomField {
+  id          Int      @id @default(autoincrement())
+  name        String
+  entity_type String   // "student_registration" or "staff_registration"
+  field_type  String   // text, number, date, dropdown
+  options     Json?
+}
+
+model StudentRegistration {
+  id            Int       @id @default(autoincrement())
+  user_id       Int
+  institution_id Int
+  phase_id      Int
+  subgroup_id   Int
+  custom_data   Json?
+  user          User      @relation(fields: [user_id], references: [id])
+  institution   Institution @relation(fields: [institution_id], references: [id])
+  phase         Phase     @relation(fields: [phase_id], references: [id])
+  subgroup      SubGroup  @relation(fields: [subgroup_id], references: [id])
+  created_at    DateTime  @default(now())
+}
+
+model StaffRegistration {
+  id              Int       @id @default(autoincrement())
+  user_id         Int
+  institution_id  Int
+  role_in_institution String?
+  custom_data     Json?
+  user            User       @relation(fields: [user_id], references: [id])
+  institution     Institution @relation(fields: [institution_id], references: [id])
+  created_at      DateTime   @default(now())
+}
