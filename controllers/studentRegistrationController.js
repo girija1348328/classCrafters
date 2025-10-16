@@ -7,6 +7,8 @@ exports.create = async (req, res) => {
     const { user_id, institution_id, phase_id, subgroup_id, custom_data } =
       req.body;
 
+      console.log(typeof user_id, typeof institution_id, typeof phase_id, typeof subgroup_id);
+
     const userExists = await prisma.user.findUnique({ where: { id: user_id } });
     if (!userExists) return res.status(400).json({ error: "Invalid user_id" });
 

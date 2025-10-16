@@ -8,6 +8,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // ✅ Import route files (NOT controllers)
+app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/roles', require('./routes/roleRoutes'));
 app.use('/api/education-types', require('./routes/educationTypeRoutes'));
@@ -18,6 +19,9 @@ app.use('/api/main-groups', require('./routes/mainGroupRoutes'));
 app.use('/api/sub-groups', require('./routes/subGroupRoutes'));
 app.use('/api/custom-fields', require('./routes/customFieldRoutes'));
 app.use('/api/student-registrations', require('./routes/studentRegistrationRoutes'));
+app.use('/api/classrooms', require('./routes/classRoomRoutes'));
+app.use('/api/assignments', require('./routes/assignmentRoutes'));
+app.use('/api/submissions', require('./routes/submissionRoutes'));
 // app.use('/api/staff-registrations', require('./routes/staffRegistrationRoutes'));
 
 app.get('/', (req, res) => {

@@ -1,0 +1,42 @@
+// classCrafters/services/exam-service/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for read-only purposes
+model User {
+  id      Int      @id @default(autoincrement())
+  email   String   @unique
+  role    String
+  name    String?
+  submissions ExamSubmission[]
+}
+
+model Exam {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  questions   Json
+  submissions ExamSubmission[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ExamSubmission {
+  id            Int      @id @default(autoincrement())
+  studentId     Int
+  examId        Int
+  answers       Json
+  submittedAt   DateTime @default(now())
+
+  student       User     @relation(fields: [studentId], references: [id])
+  exam          Exam     @relation(fields: [examId], references: [id])
+
+  @@unique([studentId, examId])
+}
