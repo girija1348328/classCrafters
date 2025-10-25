@@ -1,18 +1,73 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const logger = require("../config/logger");
+const { sendResponse } = require("../utils/responseLogger.js");
 
 // Create a Role
 exports.create = async (req, res) => {
+  const log = logger.child({
+    handler: "RoleController.create",
+    body: req.body
+  });
+
   try {
+    const { name, description } = req.body;
+
+    if (!name) {
+      return sendResponse({
+        res,
+        status: 400,
+        tag: "missingField",
+        message: "Role name is required.",
+        log
+      });
+    }
+
+    const duplicateRole = await prisma.role.findFirst({ where: { name } });
+
+    if (duplicateRole) {
+      return sendResponse({
+        res,
+        status: 409,
+        tag: "conflict",
+        message: "A role with this name already exists.",
+        log
+      });
+    }
+
     const role = await prisma.role.create({
-      data: {
-        name: req.body.name,
-        description: req.body.description || null
-      }
+      data: { name, description: description || null }
     });
-    res.status(201).json(role);
+
+    return sendResponse({
+      res,
+      status: 201,
+      tag: "success",
+      message: "Role created successfully.",
+      data: role,
+      log
+    });
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    log.error(err, "Unexpected error during role creation.");
+
+    if (err.code === "P1001") {
+      return sendResponse({
+        res,
+        status: 503,
+        tag: "databaseUnavailable",
+        message: "Database connection failed. Please try again later.",
+        log
+      });
+    }
+
+    return sendResponse({
+      res,
+      status: 500,
+      tag: "serverError",
+      message: "An internal server error occurred.",
+      log
+    });
   }
 };
 
