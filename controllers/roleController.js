@@ -91,8 +91,7 @@ exports.getAll = async (req, res) => {
 
     const roles = await prisma.role.findMany({
       skip,
-      take: limit,
-      orderBy: { createdAt: "desc" }
+      take: limit
     });
 
     // Meta info for frontend
