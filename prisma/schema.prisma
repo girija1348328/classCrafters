@@ -56,6 +56,10 @@ model User {
 
   submissions   Submission[]
 
+  assignedFeeAssignments FeeAssignment[] @relation("AssignedByUser")
+
+  receivedPayments       FeePayment[]     @relation("ReceivedByUser")
+
   created_at    DateTime  @default(now())
 
   updated_at    DateTime  @updatedAt
@@ -116,9 +120,15 @@ model Institution {
 
   staffRegs          StaffRegistration[]
 
+  feeHeads           FeeHead[]
+  
+  feeStructures      FeeStructure[]
+
   created_at         DateTime @default(now())
 
   updated_at         DateTime @updatedAt
+
+   
 
 }
 
@@ -133,6 +143,8 @@ model Phase {
   description      String?
 
   studentRegs      StudentRegistration[]
+
+feeStructures FeeStructure[]
 
 }
 
@@ -163,6 +175,8 @@ model SubGroup {
   mainGroup        MainGroup              @relation(fields: [main_group_id], references: [id])
 
   studentRegs      StudentRegistration[]
+
+  feeStructures FeeStructure[]
 
 }
 
@@ -205,6 +219,10 @@ model StudentRegistration {
   phase         Phase     @relation(fields: [phase_id], references: [id])
 
   subgroup      SubGroup  @relation(fields: [subgroup_id], references: [id])
+ 
+  feeAssignments FeeAssignment[]
+
+  feePayments    FeePayment[]
 
   created_at    DateTime  @default(now())
 
@@ -320,4 +338,259 @@ model Submission {
 
   grade        String?
 
+}
+
+enum FineType {
+  FIXED
+  PERCENTAGE
+}
+
+enum DiscountType {
+  FIXED
+  PERCENTAGE
+}
+
+enum InstallmentType {
+  MONTHLY
+  TERM
+  CUSTOM
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  CANCELLED
+  FAILED
+}
+
+enum PaymentMode {
+  CASH
+  BANK
+  ONLINE
+  CHEQUE
+  UPI
+}
+
+enum LedgerEntryType {
+  CHARGE      // initial assignment/charge
+  PAYMENT     // payment received
+  DISCOUNT    // discount or scholarship applied
+  FINE        // late fee applied
+  ADJUSTMENT  // manual adjustments/refunds
+}
+
+model FeeHead {
+  id             Int         @id @default(autoincrement())
+  institution_id Int
+  institution    Institution @relation(fields: [institution_id], references: [id], onDelete: Cascade)
+
+  name           String
+  code           String?     // short code e.g. TUITION, TRANSPORT
+  description    String?
+  is_mandatory   Boolean     @default(true)
+  default_amount Decimal?    // recommended base value, optional
+  currency       String?     @default("INR")
+
+  created_at     DateTime    @default(now())
+  updated_at     DateTime    @updatedAt 
+
+  FeeStructureHead FeeStructureHead[]
+  FeePaymentHead   FeePaymentHead[]
+  FeeDiscounts    FeeDiscount[]
+}
+
+model FeeStructure {
+  id              Int         @id @default(autoincrement())
+  institution_id  Int
+  institution     Institution @relation(fields: [institution_id], references: [id], onDelete: Cascade)
+
+  name            String
+  code            String?      // optional identifier for admin
+  description     String?
+  phase_id        Int?         // optional: applies to a Phase
+  phase           Phase?       @relation(fields: [phase_id], references: [id], onDelete: SetNull)
+  subgroup_id     Int?         // optional: applies to a SubGroup override
+  subgroup        SubGroup?    @relation(fields: [subgroup_id], references: [id], onDelete: SetNull)
+
+  total_amount    Decimal?     // optional computed/summary amount
+  currency        String?      @default("INR")
+  is_active       Boolean      @default(true)
+
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+
+  heads           FeeStructureHead[]
+  installments    FeeInstallment[]
+  discounts       FeeDiscount[]
+  fine_rules      FeeFineRule[]
+  assignments     FeeAssignment[]
+
+  @@index([institution_id])
+  @@index([phase_id])
+  @@index([subgroup_id])
+}
+
+model FeeStructureHead {
+  id               Int          @id @default(autoincrement())
+  fee_structure_id Int
+  fee_structure    FeeStructure @relation(fields: [fee_structure_id], references: [id], onDelete: Cascade)
+
+  fee_head_id      Int
+  fee_head         FeeHead      @relation(fields: [fee_head_id], references: [id], onDelete: Cascade)
+
+  amount           Decimal
+  is_optional      Boolean      @default(false) // optional heads e.g. transport
+  notes            String?
+
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
+
+  @@index([fee_structure_id])
+  @@index([fee_head_id])
+}
+
+model FeeInstallment {
+  id               Int          @id @default(autoincrement())
+  fee_structure_id Int
+  fee_structure    FeeStructure @relation(fields: [fee_structure_id], references: [id], onDelete: Cascade)
+
+  installment_no   Int          // e.g., 1,2,3...
+  installment_type InstallmentType
+  due_date         DateTime
+  amount           Decimal
+  description      String?
+
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
+
+  @@index([fee_structure_id])
+}
+
+model FeeDiscount {
+  id               Int          @id @default(autoincrement())
+  fee_structure_id Int
+  fee_structure    FeeStructure @relation(fields: [fee_structure_id], references: [id], onDelete: Cascade)
+
+  name             String
+  description      String?
+  discount_type    DiscountType
+  amount           Decimal      // either fixed amount or percentage (interpreted by discount_type)
+  applies_to_head_id Int?       // nullable: if set, applies to specific FeeHead
+  applies_to_head  FeeHead?     @relation(fields: [applies_to_head_id], references: [id], onDelete: SetNull)
+
+  eligibility_criteria Json?    // free-form JSON (e.g., {"sibling": true, "category": "SC"})
+  valid_from       DateTime?
+  valid_until      DateTime?
+
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
+
+}
+
+model FeeFineRule {
+  id               Int          @id @default(autoincrement())
+  fee_structure_id Int
+  fee_structure    FeeStructure @relation(fields: [fee_structure_id], references: [id], onDelete: Cascade)
+
+  name             String?
+  description      String?
+  fine_type        FineType     // FIXED or PERCENTAGE
+  value            Decimal      // amount or percentage-per-day (interpretation depends on fine_type)
+  grace_period_days Int         @default(0) // no fine within grace period
+  max_cap          Decimal?     // optional maximum cap for fines
+  apply_after_days Int?         // optional: start applying after N days
+
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
+
+  @@index([fee_structure_id])
+}
+
+model FeeAssignment {
+  id                     Int                  @id @default(autoincrement())
+  student_registration_id Int
+  student_registration   StudentRegistration  @relation(fields: [student_registration_id], references: [id], onDelete: Cascade)
+
+  fee_structure_id       Int
+  fee_structure          FeeStructure         @relation(fields: [fee_structure_id], references: [id], onDelete: SetNull)
+
+  assigned_on            DateTime             @default(now())
+  assigned_by_id         Int?
+  assigned_by            User?                @relation("AssignedByUser", fields: [assigned_by_id], references: [id], onDelete: SetNull)
+
+  total_amount           Decimal
+  due_amount             Decimal
+  outstanding_amount     Decimal
+  currency               String?              @default("INR")
+
+  status                 PaymentStatus        @default(PENDING)
+  due_date               DateTime?
+
+  payments               FeePayment[]
+  ledger_entries         FeeLedger[]
+
+  created_at             DateTime             @default(now())
+  updated_at             DateTime             @updatedAt
+
+  @@index([student_registration_id])
+  @@index([fee_structure_id])
+}
+
+
+model FeePayment {
+  id                    Int           @id @default(autoincrement())
+  fee_assignment_id     Int
+  fee_assignment        FeeAssignment @relation(fields: [fee_assignment_id], references: [id], onDelete: Cascade)
+
+  student_registration_id Int
+  student_registration  StudentRegistration @relation(fields: [student_registration_id], references: [id], onDelete: Cascade)
+
+  payment_date          DateTime      @default(now())
+  amount                Decimal
+  payment_mode          PaymentMode
+  status                PaymentStatus @default(PENDING)
+  transaction_ref       String?       // gateway/transaction id
+  received_by_id        Int?          // user id who recorded/received payment
+  received_by           User? @relation("ReceivedByUser", fields: [received_by_id], references: [id], onDelete: SetNull)
+  note                  String?
+
+  payment_heads         FeePaymentHead[]
+
+  created_at            DateTime      @default(now())
+  updated_at            DateTime      @updatedAt
+
+  @@index([fee_assignment_id])
+  @@index([student_registration_id])
+}
+
+model FeePaymentHead {
+  id               Int       @id @default(autoincrement())
+  fee_payment_id   Int
+  fee_payment      FeePayment @relation(fields: [fee_payment_id], references: [id], onDelete: Cascade)
+
+  fee_head_id      Int
+  fee_head         FeeHead    @relation(fields: [fee_head_id], references: [id], onDelete: SetNull)
+
+  amount           Decimal
+
+  created_at       DateTime   @default(now())
+  updated_at       DateTime   @updatedAt
+
+  @@index([fee_payment_id])
+  @@index([fee_head_id])
+}
+
+model FeeLedger {
+  id                  Int           @id @default(autoincrement())
+  fee_assignment_id   Int
+  fee_assignment      FeeAssignment @relation(fields: [fee_assignment_id], references: [id], onDelete: Cascade)
+
+  entry_type          LedgerEntryType
+  amount              Decimal
+  balance_after       Decimal?      // optional snapshot of outstanding after this entry
+  note                String?
+  created_at          DateTime      @default(now())
+
+  @@index([fee_assignment_id])
 }

@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/userController');
+const verifyToken  = require('../middlewares/authMiddleWare');
 
-router.post('/', controller.create);
-router.get('/', controller.getAll);
-router.get('/:id', controller.getById);
-router.put('/:id', controller.update);
-router.delete('/:id', controller.remove);
+router.post('/',verifyToken, controller.create);
+router.get('/',verifyToken, controller.getAll);
+router.get('/:id',verifyToken, controller.getById);
+router.put('/:id',verifyToken, controller.update);
+router.delete('/:id',verifyToken, controller.remove);
 
 module.exports = router;
