@@ -555,6 +555,11 @@ model FeePayment {
   received_by           User? @relation("ReceivedByUser", fields: [received_by_id], references: [id], onDelete: SetNull)
   note                  String?
 
+   // 🧾 Razorpay fields (add these)
+  razorpay_order_id      String?
+  razorpay_payment_id    String?
+  razorpay_signature     String?
+
   payment_heads         FeePaymentHead[]
 
   created_at            DateTime      @default(now())
