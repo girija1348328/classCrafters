@@ -599,3 +599,51 @@ model FeeLedger {
 
   @@index([fee_assignment_id])
 }
+
+model StudentAttendance {
+  id               Int                  @id @default(autoincrement())
+  studentRegId     Int
+  classroomId      Int?
+  date             DateTime
+  status           AttendanceStatus     @default(PRESENT)
+  markedById       Int?                 // who marked the attendance (usually a staff)
+  remarks          String?
+
+  // Relations
+  studentReg       StudentRegistration  @relation(fields: [studentRegId], references: [id])
+  classroom        Classroom?           @relation(fields: [classroomId], references: [id])
+  markedBy         User?                @relation(fields: [markedById], references: [id])
+
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@unique([studentRegId, date, classroomId]) // prevent duplicate marking for same date & class
+}
+
+model StaffAttendance {
+  id               Int                  @id @default(autoincrement())
+  staffRegId       Int
+  institutionId    Int
+  date             DateTime
+  status           AttendanceStatus     @default(PRESENT)
+  markedById       Int?                 // e.g., admin/principal
+  remarks          String?
+
+  // Relations
+  staffReg         StaffRegistration    @relation(fields: [staffRegId], references: [id])
+  institution      Institution          @relation(fields: [institutionId], references: [id])
+  markedBy         User?                @relation(fields: [markedById], references: [id])
+
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@unique([staffRegId, date]) // ensure one record per staff per day
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+  EXCUSED
+}
