@@ -3,32 +3,73 @@ const prisma = new PrismaClient();
 
 // Create Student Registration
 exports.create = async (req, res) => {
+  const log = logger.child({
+    handler: "StudentRegistrationController.create",
+    body: req.body
+  });
   try {
-    const { user_id, institution_id, phase_id, subgroup_id, custom_data } =
-      req.body;
+    const { user_id, institution_id, phase_id, subgroup_id, custom_data } = req.body;
 
-      console.log(typeof user_id, typeof institution_id, typeof phase_id, typeof subgroup_id);
+    console.log(typeof user_id, typeof institution_id, typeof phase_id, typeof subgroup_id);
+    if (!user_id || !institution_id || !phase_id || !subgroup_id) {
+      return sendResponse({
+        res,
+        status: 400,
+        tag: "missingField",
+        message: "User ID, Institution ID, Phase ID, and Subgroup ID are required.",
+        log
+      });
+    }
 
     const userExists = await prisma.user.findUnique({ where: { id: user_id } });
-    if (!userExists) return res.status(400).json({ error: "Invalid user_id" });
+    if (!userExists) {
+      return sendResponse({
+        res,
+        status: 404,
+        tag: "userNotFound",
+        message: "A user with this ID does not exist.",
+        log
+      });
+    }
 
     const institutionExists = await prisma.institution.findUnique({
       where: { id: institution_id },
     });
-    if (!institutionExists)
-      return res.status(400).json({ error: "Invalid institution_id" });
+    if (!institutionExists) {
+      return sendResponse({
+        res,
+        status: 404,
+        tag: "institutionNotFound",
+        message: "An institution with this ID does not exist.",
+        log
+      });
+    }
 
     const phaseExists = await prisma.phase.findUnique({
       where: { id: phase_id },
     });
-    if (!phaseExists)
-      return res.status(400).json({ error: "Invalid phase_id" });
+    if (!phaseExists) {
+      return sendResponse({
+        res,
+        status: 404,
+        tag: "phaseNotFound",
+        message: "A phase with this ID does not exist.",
+        log
+      });
+    }
 
     const subgroupExists = await prisma.subGroup.findUnique({
       where: { id: subgroup_id },
     });
-    if (!subgroupExists)
-      return res.status(400).json({ error: "Invalid subgroup_id" });
+    if (!subgroupExists) {
+      return sendResponse({
+        res,
+        status: 404,
+        tag: "subgroupNotFound",
+        message: "A subgroup with this ID does not exist.",
+        log
+      });
+    }
 
     const registration = await prisma.studentRegistration.create({
       data: {
@@ -46,9 +87,36 @@ exports.create = async (req, res) => {
       },
     });
 
-    res.status(201).json(registration);
+    return sendResponse({
+      res,
+      status: 201,
+      tag: "success",
+      message: "Student registration successfully.",
+      data: {
+        registration
+      },
+      log
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    log.error(err, "Unexpected error during student registration.");
+
+    if (err.code === "P1001") {
+      return sendResponse({
+        res,
+        status: 503,
+        tag: "databaseUnavailable",
+        message: "Database connection failed. Please try again later.",
+        log
+      });
+    }
+
+    return sendResponse({
+      res,
+      status: 500,
+      tag: "serverError",
+      message: "An internal server error occurred.",
+      log
+    });
   }
 };
 
