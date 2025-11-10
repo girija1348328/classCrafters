@@ -196,7 +196,7 @@ exports.update = async (req, res) => {
     const { name, email, roleId } = req.body;
     const userId = Number(req.params.id);
 
-    if (isNaN(roleId)) {
+    if (roleId && isNaN(roleId)) {
       return sendResponse({
         res,
         status: 400,
@@ -206,7 +206,21 @@ exports.update = async (req, res) => {
       });
     }
 
-    const user = await prisma.user.update({
+    let user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true }
+    });
+    if (!user) {
+      return sendResponse({
+        res,
+        status: 404,
+        tag: "notFound",
+        message: "User not found.",
+        log
+      });
+    }
+
+    user = await prisma.user.update({
       where: { id: userId },
       data: {
         ...(name && { name }),
