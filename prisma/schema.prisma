@@ -60,6 +60,10 @@ model User {
 
   receivedPayments       FeePayment[]     @relation("ReceivedByUser")
 
+  studentAttendance StudentAttendance[]
+
+  staffAttendance    StaffAttendance[]
+
   created_at    DateTime  @default(now())
 
   updated_at    DateTime  @updatedAt
@@ -123,6 +127,8 @@ model Institution {
   feeHeads           FeeHead[]
   
   feeStructures      FeeStructure[]
+
+  staffAttendance    StaffAttendance[]
 
   created_at         DateTime @default(now())
 
@@ -224,6 +230,8 @@ model StudentRegistration {
 
   feePayments    FeePayment[]
 
+  studentAttendance StudentAttendance[]
+
   created_at    DateTime  @default(now())
 
 }
@@ -245,6 +253,8 @@ model StaffRegistration {
   user            User       @relation(fields: [user_id], references: [id])
 
   institution     Institution @relation(fields: [institution_id], references: [id])
+
+  staffAttendance    StaffAttendance[]
 
   created_at      DateTime   @default(now())
 
@@ -269,6 +279,8 @@ model Classroom {
   students    ClassroomStudent[]
 
   assignments Assignment[]
+
+  studentAttendance StudentAttendance[]
 
   createdAt   DateTime      @default(now())
 
@@ -603,16 +615,17 @@ model FeeLedger {
 model StudentAttendance {
   id               Int                  @id @default(autoincrement())
   studentRegId     Int
-  classroomId      Int?
-  date             DateTime
+  classroomId      Int
   status           AttendanceStatus     @default(PRESENT)
-  markedById       Int?                 // who marked the attendance (usually a staff)
+  punchInTime      DateTime            // time staff checked in
+  punchOutTime     DateTime?            // time staff checked out
+  markedById       Int              // who marked the attendance (usually a staff)
   remarks          String?
 
   // Relations
   studentReg       StudentRegistration  @relation(fields: [studentRegId], references: [id])
-  classroom        Classroom?           @relation(fields: [classroomId], references: [id])
-  markedBy         User?                @relation(fields: [markedById], references: [id])
+  classroom        Classroom            @relation(fields: [classroomId], references: [id])
+  markedBy         User                 @relation(fields: [markedById], references: [id])
 
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
@@ -626,6 +639,8 @@ model StaffAttendance {
   institutionId    Int
   date             DateTime
   status           AttendanceStatus     @default(PRESENT)
+  punchInTime      DateTime?            // time student checked in
+  punchOutTime     DateTime?            // time student checked out
   markedById       Int?                 // e.g., admin/principal
   remarks          String?
 
@@ -646,4 +661,5 @@ enum AttendanceStatus {
   LATE
   HALF_DAY
   EXCUSED
+  HOLIDAY
 }

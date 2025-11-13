@@ -1,5 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const logger = require("../config/logger");
+const { sendResponse } = require("../utils/responseLogger.js");
 
 exports.create = async (req, res) => {
   const log = logger.child({
