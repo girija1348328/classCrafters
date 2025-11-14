@@ -1,5 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const logger = require("../config/logger");
+const { sendResponse } = require("../utils/responseLogger.js");
 
 exports.create = async (req, res) => {
   const log = logger.child({
@@ -274,9 +276,11 @@ exports.remove = async (req, res) => {
     handler: "UserController.remove",
     params: req.params
   });
+
   try {
     const userId = Number(req.params.id);
 
+    // 🔹 Validate ID
     if (isNaN(userId)) {
       return sendResponse({
         res,
@@ -287,7 +291,12 @@ exports.remove = async (req, res) => {
       });
     }
 
-    await prisma.user.delete({ where: { id: userId } });
+    // 🔹 Delete User
+    await prisma.user.delete({
+      where: { id: userId }
+    });
+
+    // 🔹 Success
     return sendResponse({
       res,
       status: 200,
@@ -296,9 +305,35 @@ exports.remove = async (req, res) => {
       data: { userId },
       log
     });
+
   } catch (err) {
+    // Log actual Prisma error for debugging
+    console.error("DELETE USER ERROR =>", err);
     log.error(err, "Unexpected error during user deletion.");
 
+    // 🔹 User not found
+    if (err.code === "P2025") {
+      return sendResponse({
+        res,
+        status: 404,
+        tag: "userNotFound",
+        message: "User not found.",
+        log
+      });
+    }
+
+    // 🔹 Foreign key constraint error
+    if (err.code === "P2003") {
+      return sendResponse({
+        res,
+        status: 409,
+        tag: "fkConstraint",
+        message: "User cannot be deleted because related records exist.",
+        log
+      });
+    }
+
+    // 🔹 Database unreachable
     if (err.code === "P1001") {
       return sendResponse({
         res,
@@ -309,6 +344,7 @@ exports.remove = async (req, res) => {
       });
     }
 
+    // 🔹 Fallback for all unknown errors
     return sendResponse({
       res,
       status: 500,
@@ -318,3 +354,4 @@ exports.remove = async (req, res) => {
     });
   }
 };
+
