@@ -8,7 +8,7 @@
     "dev": "nodemon server.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Girija, Debasish",
   "license": "ISC",
   "description": "",
   "dependencies": {
@@ -21,6 +21,7 @@
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
+    "moment": "^2.30.1",
     "pino": "^10.1.0",
     "razorpay": "^2.9.6"
   },

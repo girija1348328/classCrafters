@@ -1,5 +1,7 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+const logger = require("../config/logger");
+const { sendResponse } = require("../utils/responseLogger.js");
 const { isJSON } = require("../utils/helper");
 
 // Create Student Registration
