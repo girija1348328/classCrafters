@@ -617,9 +617,8 @@ model StudentAttendance {
   studentRegId     Int
   classroomId      Int
   status           AttendanceStatus     @default(PRESENT)
-  punchInTime      DateTime            // time staff checked in
-  punchOutTime     DateTime?            // time staff checked out
-  markedById       Int              // who marked the attendance (usually a staff)
+  date             DateTime             @default(now())
+  markedById       Int
   remarks          String?
 
   // Relations
@@ -637,22 +636,23 @@ model StaffAttendance {
   id               Int                  @id @default(autoincrement())
   staffRegId       Int
   institutionId    Int
-  date             DateTime
-  status           AttendanceStatus     @default(PRESENT)
-  punchInTime      DateTime?            // time student checked in
+  status           AttendanceStatus?
+  punchInTime      DateTime             @default(now())
   punchOutTime     DateTime?            // time student checked out
-  markedById       Int?                 // e.g., admin/principal
+  punchInById      Int                  // e.g., admin/principal
+  punchOutById     Int?
   remarks          String?
 
   // Relations
   staffReg         StaffRegistration    @relation(fields: [staffRegId], references: [id])
   institution      Institution          @relation(fields: [institutionId], references: [id])
-  markedBy         User?                @relation(fields: [markedById], references: [id])
+  punchInBy        User                 @relation(fields: [punchInById], references: [id])
+  punchOutBy       User                 @relation(fields: [punchOutById], references: [id])
 
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 
-  @@unique([staffRegId, date]) // ensure one record per staff per day
+  @@unique([staffRegId, punchInTime]) // ensure one record per staff per day
 }
 
 enum AttendanceStatus {
