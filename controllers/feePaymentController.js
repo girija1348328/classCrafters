@@ -105,8 +105,8 @@ exports.recordPayment = async (req, res) => {
         newOutstanding <= 0
           ? "PAID"
           : newOutstanding < Number(assignment.total_amount)
-          ? "PARTIAL"
-          : "PENDING";
+            ? "PARTIAL"
+            : "PENDING";
 
       const updatedAssignment = await prismaTx.feeAssignment.update({
         where: { id: fee_assignment_id },
@@ -177,4 +177,85 @@ exports.verifyOnlinePayment = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+exports.getPaymentsByInstitution = async (req, res) => {
+  try {
+    const { institution_id } = req.params;
+
+    const payments = await prisma.feePayment.findMany({
+      where: {
+        student_registration: {
+          institution_id: Number(institution_id)
+        }
+      },
+      include: {
+        student_registration: {
+          include: {
+            user: true,       // student name, email etc.
+            institution: true,
+            phase: true,
+            subgroup: true,
+          }
+        },
+        fee_assignment: {
+          include: {
+            fee_structure: true,
+          }
+        },
+        payment_heads: {
+          include: {
+            fee_head: true
+          }
+        },
+        received_by: true,
+      },
+      orderBy: {
+        created_at: "desc"
+      }
+    });
+
+    // Format response for frontend tables
+    const formatted = payments.map(p => ({
+      payment_id: p.id,
+      student_name: p.student_registration.user.name,
+      registration_id: p.student_registration.id,
+      institution_name: p.student_registration.institution.name,
+
+      phase: p.student_registration.phase.name,
+      subgroup: p.student_registration.subgroup.name,
+
+      amount: p.amount,
+      mode: p.payment_mode,
+      status: p.status, // PAID, PARTIAL, PENDING, FAILED
+
+      created_at: p.created_at,
+      payment_date: p.payment_date,
+
+      fee_structure: p.fee_assignment.fee_structure?.name,
+      fee_assignment_id: p.fee_assignment.id,
+
+      payment_heads: p.payment_heads.map(h => ({
+        head: h.fee_head.name,
+        amount: h.amount
+      })),
+
+      received_by: p.received_by?.name || "System"
+    }));
+
+    return res.status(200).json({
+      success: true,
+      count: formatted.length,
+      data: formatted
+    });
+
+  } catch (err) {
+    console.error("Fetch Payments Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+
+
 
