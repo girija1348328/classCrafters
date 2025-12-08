@@ -150,16 +150,114 @@ exports.staffPunchIn = async (req, res) => {
             });
         }
 
-        const attendance = await prisma.user.create(
+        const attendance = await prisma.staffAttendance.create(
             {
                 data: {
                     staffRegId,
                     institutionId,
-                    ...(remarks && { remarks }),
+                    ...(remarks && { punchInRemarks: remarks }),
                     punchInById: id
                 }
             }
         );
+
+        return sendResponse({
+            res,
+            status: 201,
+            tag: "success",
+            message: "Attendance have recorded successfully.",
+            data: {
+                attendance
+            },
+            log
+        });
+    } catch (ex) {
+        log.error(err, "Unexpected error while recording staff attendance.");
+        if (err.code === "P2002") {
+            return sendResponse({
+                res,
+                status: 409,
+                tag: "duplicateAttendance",
+                message: "Attendance already recorded for this student in this classroom today.",
+                log
+            });
+        }
+
+        if (err.code === "P2000" || err.code === "P2012") {
+            return sendResponse({
+                res,
+                status: 400,
+                tag: "invalidStatus",
+                message: "Invalid attendance status provided.",
+                log
+            });
+        }
+
+        return sendResponse({
+            res,
+            status: 500,
+            tag: "serverError",
+            message: "An internal server error occurred.",
+            log
+        });
+    }
+}
+
+exports.staffPunchOut = async (req, res) => {
+    const log = logger.child({
+        handler: "AttendanceController.staffPunchOut",
+        body: req.body
+    });
+    try {
+        const { staffAttendance_id, remarks } = req.body;
+        const { id } = req.user;
+        const now = moment().utc().toDate();
+        const workingHour = 9;
+
+        if (!staffAttendance_id) {
+            return sendResponse({
+                res,
+                status: 400,
+                tag: "missingField",
+                message: "Missing required field: staffAttendance_id.",
+                log
+            });
+        }
+
+        let staffAttendance = await prisma.staffAttendance.findUnique({ where: { id: staffAttendance_id } });
+        if (!staffAttendance) {
+            return sendResponse({
+                res,
+                status: 404,
+                tag: "notFound",
+                message: "Staff attendance record not found with the specified id.",
+                log
+            });
+        }
+
+        const punchInTime = staffAttendance.punchInTime;
+        const workedHours = moment().diff(moment(punchInTime), "hours", true);
+
+        let attendanceStatus;
+
+        if (workedHours >= workingHour) {
+            attendanceStatus = AttendanceStatus.PRESENT;
+        } else if (workedHours >= workingHour / 2) {
+            attendanceStatus = AttendanceStatus.HALF_DAY;
+        } else {
+            attendanceStatus = AttendanceStatus.ABSENT;
+        }
+
+
+        staffAttendance = await prisma.staffAttendance.update({
+            where: { id: staffAttendance.id },
+            data: {
+                punchOutTime: now,
+                punchOutById: id,
+                status: attendanceStatus,
+                ...(remarks && { punchOutRemarks: remarks })
+            }
+        });
 
         return sendResponse({
             res,

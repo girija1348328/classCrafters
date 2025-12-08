@@ -641,7 +641,8 @@ model StaffAttendance {
   punchOutTime     DateTime?            // time student checked out
   punchInById      Int                  // e.g., admin/principal
   punchOutById     Int?
-  remarks          String?
+  punchInRemarks          String?
+  punchOutRemarks         String?
 
   // Relations
   staffReg         StaffRegistration    @relation(fields: [staffRegId], references: [id])
