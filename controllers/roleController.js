@@ -23,17 +23,17 @@ exports.create = async (req, res) => {
       });
     }
 
-    const duplicateRole = await prisma.role.findFirst({ where: { name } });
+    // const duplicateRole = await prisma.role.findFirst({ where: { name } });
 
-    if (duplicateRole) {
-      return sendResponse({
-        res,
-        status: 409,
-        tag: "conflict",
-        message: "A role with this name already exists.",
-        log
-      });
-    }
+    // if (duplicateRole) {
+    //   return sendResponse({
+    //     res,
+    //     status: 409,
+    //     tag: "conflict",
+    //     message: "A role with this name already exists.",
+    //     log
+    //   });
+    // }
 
     const role = await prisma.role.create({
       data: { name, description: description || null }
