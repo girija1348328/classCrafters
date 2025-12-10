@@ -62,7 +62,8 @@ model User {
 
   studentAttendance StudentAttendance[]
 
-  staffAttendance    StaffAttendance[]
+  punchIns    StaffAttendance[]  @relation("PunchInByRelation")
+  punchOuts   StaffAttendance[]  @relation("PunchOutByRelation")
 
   created_at    DateTime  @default(now())
 
@@ -647,7 +648,7 @@ model StaffAttendance {
   // Relations
   staffReg         StaffRegistration    @relation(fields: [staffRegId], references: [id])
   institution      Institution          @relation(fields: [institutionId], references: [id])
-  
+
 // FIX: Add relation names here
   punchInBy        User              @relation("PunchInBy", fields: [punchInById], references: [id])
   punchOutBy       User              @relation("PunchOutBy", fields: [punchOutById], references: [id])
