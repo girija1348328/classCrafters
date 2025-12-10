@@ -647,8 +647,10 @@ model StaffAttendance {
   // Relations
   staffReg         StaffRegistration    @relation(fields: [staffRegId], references: [id])
   institution      Institution          @relation(fields: [institutionId], references: [id])
-  punchInBy        User                 @relation(fields: [punchInById], references: [id])
-  punchOutBy       User                 @relation(fields: [punchOutById], references: [id])
+  
+// FIX: Add relation names here
+  punchInBy        User              @relation("PunchInBy", fields: [punchInById], references: [id])
+  punchOutBy       User              @relation("PunchOutBy", fields: [punchOutById], references: [id])
 
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
