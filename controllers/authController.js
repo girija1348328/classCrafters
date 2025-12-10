@@ -16,22 +16,22 @@ let channel;
 /**
  * Initializes the RabbitMQ connection and asserts the exchange.
  */
-async function initRabbitMQ() {
-    try {
-        const connection = await amqp.connect(RABBITMQ_URL);
-        channel = await connection.createChannel();
-        // Assert the exchange as a 'topic' exchange, which the exam-service is bound to
-        await channel.assertExchange(USER_EXCHANGE, 'topic', { durable: true });
-        console.log('[UserService] RabbitMQ Publisher connected and exchange asserted.');
-    } catch (error) {
-        console.error('[UserService] Failed to initialize RabbitMQ:', error.message);
-        // Implement robust retry logic here in a production environment
-        setTimeout(initRabbitMQ, 5000);
-    }
-}
+// async function initRabbitMQ() {
+//     try {
+//         const connection = await amqp.connect(RABBITMQ_URL);
+//         channel = await connection.createChannel();
+//         // Assert the exchange as a 'topic' exchange, which the exam-service is bound to
+//         await channel.assertExchange(USER_EXCHANGE, 'topic', { durable: true });
+//         console.log('[UserService] RabbitMQ Publisher connected and exchange asserted.');
+//     } catch (error) {
+//         console.error('[UserService] Failed to initialize RabbitMQ:', error.message);
+//         // Implement robust retry logic here in a production environment
+//         setTimeout(initRabbitMQ, 5000);
+//     }
+// }
 
 // Initialize RabbitMQ when the user service starts
-initRabbitMQ();
+// initRabbitMQ();
 
 
 const generateToken = (user) => {
@@ -46,23 +46,23 @@ const generateToken = (user) => {
 
 
 
-function publishUserEvent(type, data) {
-    if (!channel) {
-        console.error('[UserService] RabbitMQ channel not initialized. Cannot publish event.');
-        return;
-    }
+// function publishUserEvent(type, data) {
+//     if (!channel) {
+//         console.error('[UserService] RabbitMQ channel not initialized. Cannot publish event.');
+//         return;
+//     }
 
-    const routingKey = `user.${type}`;
-    const message = Buffer.from(JSON.stringify(data));
+//     const routingKey = `user.${type}`;
+//     const message = Buffer.from(JSON.stringify(data));
 
-    channel.publish(
-        USER_EXCHANGE,
-        routingKey,
-        message,
-        { persistent: true } // Message survives broker restart
-    );
-    console.log(`[UserService] Published event: ${routingKey} for User ID: ${data.id}`);
-}
+//     channel.publish(
+//         USER_EXCHANGE,
+//         routingKey,
+//         message,
+//         { persistent: true } // Message survives broker restart
+//     );
+//     console.log(`[UserService] Published event: ${routingKey} for User ID: ${data.id}`);
+// }
 
 exports.signup = async (req, res) => {
     try {
@@ -95,7 +95,7 @@ exports.signup = async (req, res) => {
         };
 
         // Publish event
-        publishUserEvent('created', userPayload);
+        // publishUserEvent('created', userPayload);
 
         // Generate token
         const token = generateToken(userPayload);
