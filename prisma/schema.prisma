@@ -31,45 +31,32 @@ model Role {
 
 
 model User {
+  id          Int                @id @default(autoincrement())
+  name        String
+  email       String @unique
+  password_hash String
 
-  id            Int       @id @default(autoincrement())
+  role_id     Int
+  role        Role @relation(fields: [role_id], references: [id])
 
-  name          String
+  studentRegs StudentRegistration[]
+  staffRegs   StaffRegistration[]
 
-  email         String    @unique
-
-  password_hash String
-
-  role_id       Int
-
-  role          Role      @relation(fields: [role_id], references: [id])
-
-  studentRegs   StudentRegistration[]
-
-  staffRegs     StaffRegistration[]
-
-  // Add these reverse relations
-
-  classrooms    Classroom[]
-
-  classroomStudents ClassroomStudent[]
-
-  submissions   Submission[]
+  classrooms          Classroom[]
+  classroomStudents   ClassroomStudent[]
+  submissions         Submission[]
 
   assignedFeeAssignments FeeAssignment[] @relation("AssignedByUser")
+  receivedPayments       FeePayment[]    @relation("ReceivedByUser")
 
-  receivedPayments       FeePayment[]     @relation("ReceivedByUser")
+  // Correct Back Relations
+  punchIns    StaffAttendance[] @relation("PunchInByRelation")
+  punchOuts   StaffAttendance[] @relation("PunchOutByRelation")
 
-  studentAttendance StudentAttendance[]
-
-  punchIns    StaffAttendance[]  @relation("PunchInByRelation")
-  punchOuts   StaffAttendance[]  @relation("PunchOutByRelation")
-
-  created_at    DateTime  @default(now())
-
-  updated_at    DateTime  @updatedAt
-
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 }
+
 
 
 
@@ -632,32 +619,32 @@ model StudentAttendance {
 
   @@unique([studentRegId, date, classroomId]) // prevent duplicate marking for same date & class
 }
-
 model StaffAttendance {
-  id               Int                  @id @default(autoincrement())
+  id               Int               @id @default(autoincrement())
   staffRegId       Int
   institutionId    Int
   status           AttendanceStatus?
-  punchInTime      DateTime             @default(now())
-  punchOutTime     DateTime?            // time student checked out
-  punchInById      Int                  // e.g., admin/principal
+  punchInTime      DateTime          @default(now())
+  punchOutTime     DateTime?
+  punchInById      Int
   punchOutById     Int?
-  punchInRemarks          String?
-  punchOutRemarks         String?
+  punchInRemarks   String?
+  punchOutRemarks  String?
 
   // Relations
-  staffReg         StaffRegistration    @relation(fields: [staffRegId], references: [id])
-  institution      Institution          @relation(fields: [institutionId], references: [id])
+  staffReg         StaffRegistration @relation(fields: [staffRegId], references: [id])
+  institution      Institution       @relation(fields: [institutionId], references: [id])
 
-// FIX: Add relation names here
-  punchInBy        User              @relation("PunchInBy", fields: [punchInById], references: [id])
-  punchOutBy       User              @relation("PunchOutBy", fields: [punchOutById], references: [id])
+  // Named relations (NO duplicates)
+  punchInBy        User              @relation("PunchInByRelation", fields: [punchInById], references: [id])
+  punchOutBy       User?             @relation("PunchOutByRelation", fields: [punchOutById], references: [id])
 
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
-  @@unique([staffRegId, punchInTime]) // ensure one record per staff per day
+  @@unique([staffRegId, punchInTime])
 }
+
 
 enum AttendanceStatus {
   PRESENT
