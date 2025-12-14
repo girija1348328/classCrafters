@@ -1,343 +1,277 @@
 generator client {
-
-  provider = "prisma-client-js"
-
+  provider = "prisma-client-js"
 }
-
-
 
 datasource db {
+  provider = "postgresql"
 
-  provider = "postgresql"
-
-  url      = env("DATABASE_URL")
-
+  url = env("DATABASE_URL")
 }
-
-
 
 model Role {
+  id Int @id @default(autoincrement())
 
-  id          Int      @id @default(autoincrement())
+  name String
 
-  name        String
+  description String?
 
-  description String?
-
-  users       User[]
-
+  users User[]
 }
 
-
-
 model User {
-  id          Int                @id @default(autoincrement())
-  name        String
-  email       String @unique
+  id            Int    @id @default(autoincrement())
+  name          String
+  email         String @unique
   password_hash String
 
-  role_id     Int
-  role        Role @relation(fields: [role_id], references: [id])
+  role_id Int
+  role    Role @relation(fields: [role_id], references: [id])
 
   studentRegs StudentRegistration[]
   staffRegs   StaffRegistration[]
 
-  classrooms          Classroom[]
-  classroomStudents   ClassroomStudent[]
-  submissions         Submission[]
+  classrooms        Classroom[]
+  classroomStudents ClassroomStudent[]
+  submissions       Submission[]
 
   assignedFeeAssignments FeeAssignment[] @relation("AssignedByUser")
   receivedPayments       FeePayment[]    @relation("ReceivedByUser")
 
   // Correct Back Relations
-  punchIns    StaffAttendance[] @relation("PunchInByRelation")
-  punchOuts   StaffAttendance[] @relation("PunchOutByRelation")
+  punchIns  StaffAttendance[] @relation("PunchInByRelation")
+  punchOuts StaffAttendance[] @relation("PunchOutByRelation")
 
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  created_at         DateTime            @default(now())
+  updated_at         DateTime            @updatedAt
+  studentAttendances StudentAttendance[]
 }
-
-
-
 
 model EducationType {
+  id Int @id @default(autoincrement())
 
-  id            Int           @id @default(autoincrement())
+  name String
 
-  name          String
-
-  institutions  Institution[]
-
+  institutions Institution[]
 }
-
-
 
 model Location {
+  id Int @id @default(autoincrement())
 
-  id            Int           @id @default(autoincrement())
+  name String
 
-  name          String
+  address String?
 
-  address       String?
+  city String?
 
-  city          String?
+  state String?
 
-  state         String?
+  country String?
 
-  country       String?
+  zipcode String?
 
-  zipcode       String?
-
-  institutions  Institution[]
-
+  institutions Institution[]
 }
-
-
 
 model Institution {
+  id Int @id @default(autoincrement())
 
-  id                 Int                 @id @default(autoincrement())
+  name String
 
-  name               String
+  education_type_id Int
 
-  education_type_id  Int
+  location_id Int
 
-  location_id        Int
+  educationType EducationType @relation(fields: [education_type_id], references: [id])
 
-  educationType      EducationType       @relation(fields: [education_type_id], references: [id])
+  location Location @relation(fields: [location_id], references: [id])
 
-  location           Location            @relation(fields: [location_id], references: [id])
+  studentRegs StudentRegistration[]
 
-  studentRegs        StudentRegistration[]
+  staffRegs StaffRegistration[]
 
-  staffRegs          StaffRegistration[]
-
-  feeHeads           FeeHead[]
-  
-  feeStructures      FeeStructure[]
-
-  staffAttendance    StaffAttendance[]
-
-  created_at         DateTime @default(now())
-
-  updated_at         DateTime @updatedAt
-
-   
-
-}
-
-
-
-model Phase {
-
-  id               Int                   @id @default(autoincrement())
-
-  name             String
-
-  description      String?
-
-  studentRegs      StudentRegistration[]
-
-feeStructures FeeStructure[]
-
-}
-
-
-
-model MainGroup {
-
-  id               Int                   @id @default(autoincrement())
-
-  name             String
-
-  description      String?
-
-  subGroups        SubGroup[]
-
-}
-
-
-
-model SubGroup {
-
-  id               Int                   @id @default(autoincrement())
-
-  name             String
-
-  main_group_id    Int
-
-  mainGroup        MainGroup              @relation(fields: [main_group_id], references: [id])
-
-  studentRegs      StudentRegistration[]
+  feeHeads FeeHead[]
 
   feeStructures FeeStructure[]
 
+  staffAttendance StaffAttendance[]
+
+  created_at DateTime @default(now())
+
+  updated_at DateTime @updatedAt
 }
 
+model Phase {
+  id Int @id @default(autoincrement())
 
+  name String
+
+  description String?
+
+  studentRegs StudentRegistration[]
+
+  feeStructures FeeStructure[]
+}
+
+model MainGroup {
+  id Int @id @default(autoincrement())
+
+  name String
+
+  description String?
+
+  subGroups SubGroup[]
+}
+
+model SubGroup {
+  id Int @id @default(autoincrement())
+
+  name String
+
+  main_group_id Int
+
+  mainGroup MainGroup @relation(fields: [main_group_id], references: [id])
+
+  studentRegs StudentRegistration[]
+
+  feeStructures FeeStructure[]
+}
 
 model CustomField {
+  id Int @id @default(autoincrement())
 
-  id          Int      @id @default(autoincrement())
+  name String
 
-  name        String
+  entity_type String // "student_registration" or "staff_registration"
 
-  entity_type String   // "student_registration" or "staff_registration"
+  field_type String // text, number, date, dropdown
 
-  field_type  String   // text, number, date, dropdown
-
-  options     Json?
-
+  options Json?
 }
-
-
 
 model StudentRegistration {
+  id Int @id @default(autoincrement())
 
-  id            Int       @id @default(autoincrement())
+  user_id Int
 
-  user_id       Int
+  institution_id Int
 
-  institution_id Int
+  phase_id Int
 
-  phase_id      Int
+  subgroup_id Int
 
-  subgroup_id   Int
+  custom_data Json?
 
-  custom_data   Json?
+  user User @relation(fields: [user_id], references: [id])
 
-  user          User      @relation(fields: [user_id], references: [id])
+  institution Institution @relation(fields: [institution_id], references: [id])
 
-  institution   Institution @relation(fields: [institution_id], references: [id])
+  phase Phase @relation(fields: [phase_id], references: [id])
 
-  phase         Phase     @relation(fields: [phase_id], references: [id])
+  subgroup SubGroup @relation(fields: [subgroup_id], references: [id])
 
-  subgroup      SubGroup  @relation(fields: [subgroup_id], references: [id])
- 
   feeAssignments FeeAssignment[]
 
-  feePayments    FeePayment[]
+  feePayments FeePayment[]
 
   studentAttendance StudentAttendance[]
 
-  created_at    DateTime  @default(now())
-
+  created_at DateTime @default(now())
 }
-
-
 
 model StaffRegistration {
+  id Int @id @default(autoincrement())
 
-  id              Int       @id @default(autoincrement())
+  user_id Int
 
-  user_id         Int
+  institution_id Int
 
-  institution_id  Int
+  role_in_institution String?
 
-  role_in_institution String?
+  custom_data Json?
 
-  custom_data     Json?
+  user User @relation(fields: [user_id], references: [id])
 
-  user            User       @relation(fields: [user_id], references: [id])
+  institution Institution @relation(fields: [institution_id], references: [id])
 
-  institution     Institution @relation(fields: [institution_id], references: [id])
+  staffAttendance StaffAttendance[]
 
-  staffAttendance    StaffAttendance[]
-
-  created_at      DateTime   @default(now())
-
+  created_at DateTime @default(now())
 }
 
-
-
 model Classroom {
+  id Int @id @default(autoincrement())
 
-  id          Int        @id @default(autoincrement())
+  name String
 
-  name        String
+  subject String?
 
-  subject     String?
+  description String?
 
-  description String?
+  teacherId Int // Changed from String to Int to match User.id
 
-  teacherId   Int  // Changed from String to Int to match User.id
+  teacher User @relation(fields: [teacherId], references: [id])
 
-  teacher     User          @relation(fields: [teacherId], references: [id])
+  students ClassroomStudent[]
 
-  students    ClassroomStudent[]
-
-  assignments Assignment[]
+  assignments Assignment[]
 
   studentAttendance StudentAttendance[]
 
-  createdAt   DateTime      @default(now())
+  createdAt DateTime @default(now())
 
-  updatedAt   DateTime      @updatedAt
-
+  updatedAt DateTime @updatedAt
 }
-
-
 
 model ClassroomStudent {
+  id Int @id @default(autoincrement()) // Changed from String to Int
 
-  id          Int    @id @default(autoincrement())  // Changed from String to Int
+  classroom Classroom @relation(fields: [classroomId], references: [id])
 
-  classroom   Classroom @relation(fields: [classroomId], references: [id])
+  classroomId Int // Changed from String to Int to match Classroom.id
 
-  classroomId Int  // Changed from String to Int to match Classroom.id
+  student User @relation(fields: [studentId], references: [id])
 
-  student     User      @relation(fields: [studentId], references: [id])
-
-  studentId   Int  // Changed from String to Int to match User.id
-
+  studentId Int // Changed from String to Int to match User.id
 }
-
-
 
 model Assignment {
+  id Int @id @default(autoincrement()) // Changed from String to Int
 
-  id          Int    @id @default(autoincrement())  // Changed from String to Int
+  title String
 
-  title       String
+  description String?
 
-  description String?
+  dueDate DateTime
 
-  dueDate     DateTime
+  classroom Classroom @relation(fields: [classroomId], references: [id])
 
-  classroom   Classroom @relation(fields: [classroomId], references: [id])
+  classroomId Int // Changed from String to Int to match Classroom.id
 
-  classroomId Int  // Changed from String to Int to match Classroom.id
+  createdBy String
 
-  createdBy   String
+  submissions Submission[]
 
-  submissions Submission[]
+  createdAt DateTime @default(now())
 
-  createdAt   DateTime  @default(now())
-
-  updatedAt   DateTime  @updatedAt
-
+  updatedAt DateTime @updatedAt
 }
 
-
-
 model Submission {
+  id Int @id @default(autoincrement()) // Changed from String to Int
 
-  id           Int     @id @default(autoincrement())  // Changed from String to Int
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
 
-  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  assignmentId Int // Changed from String to Int to match Assignment.id
 
-  assignmentId Int  // Changed from String to Int to match Assignment.id
+  student User @relation(fields: [studentId], references: [id])
 
-  student      User       @relation(fields: [studentId], references: [id])
+  studentId Int // Changed from String to Int to match User.id
 
-  studentId    Int  // Changed from String to Int to match User.id
+  fileUrl String
 
-  fileUrl      String
+  submittedAt DateTime @default(now())
 
-  submittedAt  DateTime   @default(now())
-
-  grade        String?
-
+  grade String?
 }
 
 enum FineType {
@@ -373,11 +307,11 @@ enum PaymentMode {
 }
 
 enum LedgerEntryType {
-  CHARGE      // initial assignment/charge
-  PAYMENT     // payment received
-  DISCOUNT    // discount or scholarship applied
-  FINE        // late fee applied
-  ADJUSTMENT  // manual adjustments/refunds
+  CHARGE // initial assignment/charge
+  PAYMENT // payment received
+  DISCOUNT // discount or scholarship applied
+  FINE // late fee applied
+  ADJUSTMENT // manual adjustments/refunds
 }
 
 model FeeHead {
@@ -386,45 +320,45 @@ model FeeHead {
   institution    Institution @relation(fields: [institution_id], references: [id], onDelete: Cascade)
 
   name           String
-  code           String?     // short code e.g. TUITION, TRANSPORT
+  code           String? // short code e.g. TUITION, TRANSPORT
   description    String?
-  is_mandatory   Boolean     @default(true)
-  default_amount Decimal?    // recommended base value, optional
-  currency       String?     @default("INR")
+  is_mandatory   Boolean  @default(true)
+  default_amount Decimal? // recommended base value, optional
+  currency       String?  @default("INR")
 
-  created_at     DateTime    @default(now())
-  updated_at     DateTime    @updatedAt 
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   FeeStructureHead FeeStructureHead[]
   FeePaymentHead   FeePaymentHead[]
-  FeeDiscounts    FeeDiscount[]
+  FeeDiscounts     FeeDiscount[]
 }
 
 model FeeStructure {
-  id              Int         @id @default(autoincrement())
-  institution_id  Int
-  institution     Institution @relation(fields: [institution_id], references: [id], onDelete: Cascade)
+  id             Int         @id @default(autoincrement())
+  institution_id Int
+  institution    Institution @relation(fields: [institution_id], references: [id], onDelete: Cascade)
 
-  name            String
-  code            String?      // optional identifier for admin
-  description     String?
-  phase_id        Int?         // optional: applies to a Phase
-  phase           Phase?       @relation(fields: [phase_id], references: [id], onDelete: SetNull)
-  subgroup_id     Int?         // optional: applies to a SubGroup override
-  subgroup        SubGroup?    @relation(fields: [subgroup_id], references: [id], onDelete: SetNull)
+  name        String
+  code        String? // optional identifier for admin
+  description String?
+  phase_id    Int? // optional: applies to a Phase
+  phase       Phase?    @relation(fields: [phase_id], references: [id], onDelete: SetNull)
+  subgroup_id Int? // optional: applies to a SubGroup override
+  subgroup    SubGroup? @relation(fields: [subgroup_id], references: [id], onDelete: SetNull)
 
-  total_amount    Decimal?     // optional computed/summary amount
-  currency        String?      @default("INR")
-  is_active       Boolean      @default(true)
+  total_amount Decimal? // optional computed/summary amount
+  currency     String?  @default("INR")
+  is_active    Boolean  @default(true)
 
-  created_at      DateTime     @default(now())
-  updated_at      DateTime     @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
-  heads           FeeStructureHead[]
-  installments    FeeInstallment[]
-  discounts       FeeDiscount[]
-  fine_rules      FeeFineRule[]
-  assignments     FeeAssignment[]
+  heads        FeeStructureHead[]
+  installments FeeInstallment[]
+  discounts    FeeDiscount[]
+  fine_rules   FeeFineRule[]
+  assignments  FeeAssignment[]
 
   @@index([institution_id])
   @@index([phase_id])
@@ -436,15 +370,15 @@ model FeeStructureHead {
   fee_structure_id Int
   fee_structure    FeeStructure @relation(fields: [fee_structure_id], references: [id], onDelete: Cascade)
 
-  fee_head_id      Int
-  fee_head         FeeHead      @relation(fields: [fee_head_id], references: [id], onDelete: Cascade)
+  fee_head_id Int
+  fee_head    FeeHead @relation(fields: [fee_head_id], references: [id], onDelete: Cascade)
 
-  amount           Decimal
-  is_optional      Boolean      @default(false) // optional heads e.g. transport
-  notes            String?
+  amount      Decimal
+  is_optional Boolean @default(false) // optional heads e.g. transport
+  notes       String?
 
-  created_at       DateTime     @default(now())
-  updated_at       DateTime     @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@index([fee_structure_id])
   @@index([fee_head_id])
@@ -455,14 +389,14 @@ model FeeInstallment {
   fee_structure_id Int
   fee_structure    FeeStructure @relation(fields: [fee_structure_id], references: [id], onDelete: Cascade)
 
-  installment_no   Int          // e.g., 1,2,3...
+  installment_no   Int // e.g., 1,2,3...
   installment_type InstallmentType
   due_date         DateTime
   amount           Decimal
   description      String?
 
-  created_at       DateTime     @default(now())
-  updated_at       DateTime     @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@index([fee_structure_id])
 }
@@ -472,20 +406,19 @@ model FeeDiscount {
   fee_structure_id Int
   fee_structure    FeeStructure @relation(fields: [fee_structure_id], references: [id], onDelete: Cascade)
 
-  name             String
-  description      String?
-  discount_type    DiscountType
-  amount           Decimal      // either fixed amount or percentage (interpreted by discount_type)
-  applies_to_head_id Int?       // nullable: if set, applies to specific FeeHead
-  applies_to_head  FeeHead?     @relation(fields: [applies_to_head_id], references: [id], onDelete: SetNull)
+  name               String
+  description        String?
+  discount_type      DiscountType
+  amount             Decimal // either fixed amount or percentage (interpreted by discount_type)
+  applies_to_head_id Int? // nullable: if set, applies to specific FeeHead
+  applies_to_head    FeeHead?     @relation(fields: [applies_to_head_id], references: [id], onDelete: SetNull)
 
-  eligibility_criteria Json?    // free-form JSON (e.g., {"sibling": true, "category": "SC"})
-  valid_from       DateTime?
-  valid_until      DateTime?
+  eligibility_criteria Json? // free-form JSON (e.g., {"sibling": true, "category": "SC"})
+  valid_from           DateTime?
+  valid_until          DateTime?
 
-  created_at       DateTime     @default(now())
-  updated_at       DateTime     @updatedAt
-
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
 
 model FeeFineRule {
@@ -493,158 +426,157 @@ model FeeFineRule {
   fee_structure_id Int
   fee_structure    FeeStructure @relation(fields: [fee_structure_id], references: [id], onDelete: Cascade)
 
-  name             String?
-  description      String?
-  fine_type        FineType     // FIXED or PERCENTAGE
-  value            Decimal      // amount or percentage-per-day (interpretation depends on fine_type)
-  grace_period_days Int         @default(0) // no fine within grace period
-  max_cap          Decimal?     // optional maximum cap for fines
-  apply_after_days Int?         // optional: start applying after N days
+  name              String?
+  description       String?
+  fine_type         FineType // FIXED or PERCENTAGE
+  value             Decimal // amount or percentage-per-day (interpretation depends on fine_type)
+  grace_period_days Int      @default(0) // no fine within grace period
+  max_cap           Decimal? // optional maximum cap for fines
+  apply_after_days  Int? // optional: start applying after N days
 
-  created_at       DateTime     @default(now())
-  updated_at       DateTime     @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@index([fee_structure_id])
 }
 
 model FeeAssignment {
-  id                     Int                  @id @default(autoincrement())
+  id                      Int                 @id @default(autoincrement())
   student_registration_id Int
-  student_registration   StudentRegistration  @relation(fields: [student_registration_id], references: [id], onDelete: Cascade)
+  student_registration    StudentRegistration @relation(fields: [student_registration_id], references: [id], onDelete: Cascade)
 
-  fee_structure_id       Int
-  fee_structure          FeeStructure         @relation(fields: [fee_structure_id], references: [id], onDelete: SetNull)
+  fee_structure_id Int
+  fee_structure    FeeStructure @relation(fields: [fee_structure_id], references: [id], onDelete: SetNull)
 
-  assigned_on            DateTime             @default(now())
-  assigned_by_id         Int?
-  assigned_by            User?                @relation("AssignedByUser", fields: [assigned_by_id], references: [id], onDelete: SetNull)
+  assigned_on    DateTime @default(now())
+  assigned_by_id Int?
+  assigned_by    User?    @relation("AssignedByUser", fields: [assigned_by_id], references: [id], onDelete: SetNull)
 
-  total_amount           Decimal
-  due_amount             Decimal
-  outstanding_amount     Decimal
-  currency               String?              @default("INR")
+  total_amount       Decimal
+  due_amount         Decimal
+  outstanding_amount Decimal
+  currency           String? @default("INR")
 
-  status                 PaymentStatus        @default(PENDING)
-  due_date               DateTime?
+  status   PaymentStatus @default(PENDING)
+  due_date DateTime?
 
-  payments               FeePayment[]
-  ledger_entries         FeeLedger[]
+  payments       FeePayment[]
+  ledger_entries FeeLedger[]
 
-  created_at             DateTime             @default(now())
-  updated_at             DateTime             @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@index([student_registration_id])
   @@index([fee_structure_id])
 }
 
-
 model FeePayment {
-  id                    Int           @id @default(autoincrement())
-  fee_assignment_id     Int
-  fee_assignment        FeeAssignment @relation(fields: [fee_assignment_id], references: [id], onDelete: Cascade)
+  id                Int           @id @default(autoincrement())
+  fee_assignment_id Int
+  fee_assignment    FeeAssignment @relation(fields: [fee_assignment_id], references: [id], onDelete: Cascade)
 
   student_registration_id Int
-  student_registration  StudentRegistration @relation(fields: [student_registration_id], references: [id], onDelete: Cascade)
+  student_registration    StudentRegistration @relation(fields: [student_registration_id], references: [id], onDelete: Cascade)
 
-  payment_date          DateTime      @default(now())
-  amount                Decimal
-  payment_mode          PaymentMode
-  status                PaymentStatus @default(PENDING)
-  transaction_ref       String?       // gateway/transaction id
-  received_by_id        Int?          // user id who recorded/received payment
-  received_by           User? @relation("ReceivedByUser", fields: [received_by_id], references: [id], onDelete: SetNull)
-  note                  String?
+  payment_date    DateTime      @default(now())
+  amount          Decimal
+  payment_mode    PaymentMode
+  status          PaymentStatus @default(PENDING)
+  transaction_ref String? // gateway/transaction id
+  received_by_id  Int? // user id who recorded/received payment
+  received_by     User?         @relation("ReceivedByUser", fields: [received_by_id], references: [id], onDelete: SetNull)
+  note            String?
 
-   // 🧾 Razorpay fields (add these)
-  razorpay_order_id      String?
-  razorpay_payment_id    String?
-  razorpay_signature     String?
+  // 🧾 Razorpay fields (add these)
+  razorpay_order_id   String?
+  razorpay_payment_id String?
+  razorpay_signature  String?
 
-  payment_heads         FeePaymentHead[]
+  payment_heads FeePaymentHead[]
 
-  created_at            DateTime      @default(now())
-  updated_at            DateTime      @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@index([fee_assignment_id])
   @@index([student_registration_id])
 }
 
 model FeePaymentHead {
-  id               Int       @id @default(autoincrement())
-  fee_payment_id   Int
-  fee_payment      FeePayment @relation(fields: [fee_payment_id], references: [id], onDelete: Cascade)
+  id             Int        @id @default(autoincrement())
+  fee_payment_id Int
+  fee_payment    FeePayment @relation(fields: [fee_payment_id], references: [id], onDelete: Cascade)
 
-  fee_head_id      Int
-  fee_head         FeeHead    @relation(fields: [fee_head_id], references: [id], onDelete: SetNull)
+  fee_head_id Int
+  fee_head    FeeHead @relation(fields: [fee_head_id], references: [id], onDelete: SetNull)
 
-  amount           Decimal
+  amount Decimal
 
-  created_at       DateTime   @default(now())
-  updated_at       DateTime   @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@index([fee_payment_id])
   @@index([fee_head_id])
 }
 
 model FeeLedger {
-  id                  Int           @id @default(autoincrement())
-  fee_assignment_id   Int
-  fee_assignment      FeeAssignment @relation(fields: [fee_assignment_id], references: [id], onDelete: Cascade)
+  id                Int           @id @default(autoincrement())
+  fee_assignment_id Int
+  fee_assignment    FeeAssignment @relation(fields: [fee_assignment_id], references: [id], onDelete: Cascade)
 
-  entry_type          LedgerEntryType
-  amount              Decimal
-  balance_after       Decimal?      // optional snapshot of outstanding after this entry
-  note                String?
-  created_at          DateTime      @default(now())
+  entry_type    LedgerEntryType
+  amount        Decimal
+  balance_after Decimal? // optional snapshot of outstanding after this entry
+  note          String?
+  created_at    DateTime        @default(now())
 
   @@index([fee_assignment_id])
 }
 
 model StudentAttendance {
-  id               Int                  @id @default(autoincrement())
-  studentRegId     Int
-  classroomId      Int
-  status           AttendanceStatus     @default(PRESENT)
-  date             DateTime             @default(now())
-  markedById       Int
-  remarks          String?
+  id           Int              @id @default(autoincrement())
+  studentRegId Int
+  classroomId  Int
+  status       AttendanceStatus @default(PRESENT)
+  date         DateTime         @default(now())
+  markedById   Int
+  remarks      String?
 
   // Relations
-  studentReg       StudentRegistration  @relation(fields: [studentRegId], references: [id])
-  classroom        Classroom            @relation(fields: [classroomId], references: [id])
-  markedBy         User                 @relation(fields: [markedById], references: [id])
+  studentReg StudentRegistration @relation(fields: [studentRegId], references: [id])
+  classroom  Classroom           @relation(fields: [classroomId], references: [id])
+  markedBy   User                @relation(fields: [markedById], references: [id])
 
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([studentRegId, date, classroomId]) // prevent duplicate marking for same date & class
 }
+
 model StaffAttendance {
-  id               Int               @id @default(autoincrement())
-  staffRegId       Int
-  institutionId    Int
-  status           AttendanceStatus?
-  punchInTime      DateTime          @default(now())
-  punchOutTime     DateTime?
-  punchInById      Int
-  punchOutById     Int?
-  punchInRemarks   String?
-  punchOutRemarks  String?
+  id              Int               @id @default(autoincrement())
+  staffRegId      Int
+  institutionId   Int
+  status          AttendanceStatus?
+  punchInTime     DateTime          @default(now())
+  punchOutTime    DateTime?
+  punchInById     Int
+  punchOutById    Int?
+  punchInRemarks  String?
+  punchOutRemarks String?
 
   // Relations
-  staffReg         StaffRegistration @relation(fields: [staffRegId], references: [id])
-  institution      Institution       @relation(fields: [institutionId], references: [id])
+  staffReg    StaffRegistration @relation(fields: [staffRegId], references: [id])
+  institution Institution       @relation(fields: [institutionId], references: [id])
 
   // Named relations (NO duplicates)
-  punchInBy        User              @relation("PunchInByRelation", fields: [punchInById], references: [id])
-  punchOutBy       User?             @relation("PunchOutByRelation", fields: [punchOutById], references: [id])
+  punchInBy  User  @relation("PunchInByRelation", fields: [punchInById], references: [id])
+  punchOutBy User? @relation("PunchOutByRelation", fields: [punchOutById], references: [id])
 
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([staffRegId, punchInTime])
 }
-
 
 enum AttendanceStatus {
   PRESENT

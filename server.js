@@ -27,6 +27,8 @@ app.use('/api/fee-structures', require('./routes/feeStructureRoutes'));
 app.use('/api/fee-assignments', require('./routes/feeAssignmentRoutes'));
 app.use('/api/fee-payments', require('./routes/feePaymentRoutes'));
 
+app.use('/api/attendance', require('./routes/attendanceRoutes'));
+
 app.get('/', (req, res) => {
   res.send('Education Portal API is running...');
 });

@@ -300,3 +300,5 @@ exports.staffPunchOut = async (req, res) => {
         });
     }
 }
+
+//student attendance with classroomId, studentRegId, date range filter
