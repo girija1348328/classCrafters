@@ -19,6 +19,7 @@ app.use('/api/main-groups', require('./routes/mainGroupRoutes'));
 app.use('/api/sub-groups', require('./routes/subGroupRoutes'));
 app.use('/api/custom-fields', require('./routes/customFieldRoutes'));
 app.use('/api/student-registrations', require('./routes/studentRegistrationRoutes'));
+app.use('/api/staff-registrations', require('./routes/staffRegistrationRoutes'));
 app.use('/api/classrooms', require('./routes/classRoomRoutes'));
 app.use('/api/assignments', require('./routes/assignmentRoutes'));
 app.use('/api/submissions', require('./routes/submissionRoutes'));

@@ -2,6 +2,7 @@ const { PrismaClient, AttendanceStatus } = require('@prisma/client');
 const prisma = new PrismaClient();
 const logger = require("../config/logger");
 const { sendResponse } = require("../utils/responseLogger.js");
+const moment = require("moment");
 
 exports.recordStudentAttendance = async (req, res) => {
     const log = logger.child({
@@ -54,7 +55,7 @@ exports.recordStudentAttendance = async (req, res) => {
             });
         }
 
-        const attendance = await prisma.user.create(
+        const attendance = await prisma.studentAttendance.create(
             {
                 data: {
                     studentRegId,
@@ -116,9 +117,9 @@ exports.staffPunchIn = async (req, res) => {
     });
     try {
         const { staffRegId, institutionId, remarks } = req.body;
-        const { id } = req.user;
+        let { id } = req.user;
 
-        if (!staffRegId || !institutionId) {
+        if (!institutionId) {
             return sendResponse({
                 res,
                 status: 400,
@@ -128,15 +129,18 @@ exports.staffPunchIn = async (req, res) => {
             });
         }
 
-        const staffRegd = await prisma.staffRegistration.findUnique({ where: { id: staffRegId } });
-        if (!staffRegd) {
-            return sendResponse({
-                res,
-                status: 404,
-                tag: "notFound",
-                message: "No staff found with the specified regd. id.",
-                log
-            });
+        if (staffRegId) {
+            const staffRegd = await prisma.staffRegistration.findUnique({ where: { id: staffRegId } });
+            if (!staffRegd) {
+                return sendResponse({
+                    res,
+                    status: 404,
+                    tag: "notFound",
+                    message: "No staff found with the specified regd. id.",
+                    log
+                });
+            }
+            id = staffRegd.id;
         }
 
         const institution = await prisma.institution.findUnique({ where: { id: institutionId } });
@@ -153,7 +157,7 @@ exports.staffPunchIn = async (req, res) => {
         const attendance = await prisma.staffAttendance.create(
             {
                 data: {
-                    staffRegId,
+                    staffRegId: id,
                     institutionId,
                     ...(remarks && { punchInRemarks: remarks }),
                     punchInById: id
@@ -171,7 +175,7 @@ exports.staffPunchIn = async (req, res) => {
             },
             log
         });
-    } catch (ex) {
+    } catch (err) {
         log.error(err, "Unexpected error while recording staff attendance.");
         if (err.code === "P2002") {
             return sendResponse({
@@ -265,11 +269,11 @@ exports.staffPunchOut = async (req, res) => {
             tag: "success",
             message: "Attendance have recorded successfully.",
             data: {
-                attendance
+                staffAttendance
             },
             log
         });
-    } catch (ex) {
+    } catch (err) {
         log.error(err, "Unexpected error while recording staff attendance.");
         if (err.code === "P2002") {
             return sendResponse({

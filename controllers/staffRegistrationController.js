@@ -12,7 +12,7 @@ exports.create = async (req, res) => {
     try {
         const { user_id, institution_id, role_in_institution, custom_data } = req.body;
 
-        const registration = await prisma.studentRegistration.create({
+        const registration = await prisma.staffRegistration.create({
             data: {
                 user_id,
                 institution_id,

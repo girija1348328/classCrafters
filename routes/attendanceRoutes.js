@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const verifyToken = require("../middlewares/authMiddleWare");
 
 const {
   recordStudentAttendance,
@@ -8,8 +9,8 @@ const {
 } = require('../controllers/attendanceController');
 
 // Assignment routes
-router.post('/recordStudentAttendance', recordStudentAttendance);
-router.post('/staffPunchIn', staffPunchIn);
-router.post('/staffPunchOut', staffPunchOut);
+router.post('/recordStudentAttendance', verifyToken, recordStudentAttendance);
+router.post('/staffPunchIn', verifyToken, staffPunchIn);
+router.post('/staffPunchOut', verifyToken, staffPunchOut);
 
 module.exports = router;
