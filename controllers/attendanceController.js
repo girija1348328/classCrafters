@@ -306,3 +306,93 @@ exports.staffPunchOut = async (req, res) => {
 }
 
 //student attendance with classroomId, studentRegId, date range filter
+
+exports.getStudentAttendance = async (req, res) => {
+    const log = logger.child({
+        handler: "AttendanceController.getStudentAttendance",
+        query: req.query
+    });
+    try {
+        const { startDate, endDate, classroomId, studentRegId } = req.query;
+        let { page = 1, limit = 10 } = req.query;
+        page = parseInt(page);
+        limit = parseInt(limit);
+
+        const skip = (page - 1) * limit;
+
+        const where = {};
+
+        // filter by student
+        if (studentRegId) {
+            where.studentRegId = Number(studentRegId);
+        }
+
+        // filter by classroom
+        if (classroomId) {
+            where.classroomId = Number(classroomId);
+        }
+
+        // filter by date range
+        if (startDate || endDate) {
+            where.date = {};
+
+            if (startDate) {
+                where.date.gte = new Date(startDate);
+            }
+
+            if (endDate) {
+                where.date.lte = new Date(endDate);
+            }
+        }
+
+        const totalCount = await prisma.studentRegistration.count();
+
+        const studentAttendance = await prisma.studentAttendance.findMany({
+            where,
+            include: {
+                studentReg: true,
+                classroom: true,
+                markedBy: true
+            },
+            skip,
+            take: limit
+        });
+
+        const meta = {
+            totalCount,
+            currentPage: page,
+            totalPages: Math.ceil(totalCount / limit),
+            pageSize: limit
+        };
+
+        return sendResponse({
+            res,
+            status: 200,
+            tag: "success",
+            message: "Student registrations retrieved successfully.",
+            data: { studentAttendance },
+            meta,
+            log
+        });
+    } catch (ex) {
+        log.error(err, "Unexpected error occurred while fetching student attendance.");
+
+        if (err.code === "P1001") {
+            return sendResponse({
+                res,
+                status: 503,
+                tag: "databaseUnavailable",
+                message: "Database connection failed. Please try again later.",
+                log
+            });
+        }
+
+        return sendResponse({
+            res,
+            status: 500,
+            tag: "serverError",
+            message: "An internal server error occurred.",
+            log
+        });
+    }
+}
