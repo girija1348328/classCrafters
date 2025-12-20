@@ -143,6 +143,38 @@ exports.staffPunchIn = async (req, res) => {
             id = staffRegd.id;
         }
 
+        const now = new Date();
+
+        const startUTC = new Date(Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate(),
+            0, 0, 0, 0
+        ));
+
+        const endUTC = new Date(Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate(),
+            23, 59, 59, 999
+        ));
+
+        let attendance = await prisma.staffAttendance.findFirst(
+            {
+                where: { createdAt: { gte: startUTC, lte: endUTC } },
+                select: { id: true }
+            }
+        );
+        if (attendance) {
+            return sendResponse({
+                res,
+                status: 404,
+                tag: "alreadyPunchedIn",
+                message: "You have already punched in for today.",
+                log
+            });
+        }
+
         const institution = await prisma.institution.findUnique({ where: { id: institutionId } });
         if (!institution) {
             return sendResponse({
@@ -154,7 +186,7 @@ exports.staffPunchIn = async (req, res) => {
             });
         }
 
-        const attendance = await prisma.staffAttendance.create(
+        attendance = await prisma.staffAttendance.create(
             {
                 data: {
                     staffRegId: id,
@@ -239,7 +271,32 @@ exports.staffPunchOut = async (req, res) => {
             });
         }
 
+        if (staffAttendance.punchOutTime || staffAttendance.status) {
+            return sendResponse({
+                res,
+                status: 409,
+                tag: "alreadyPunchedOut",
+                message: "You have already punched out for today.",
+                log
+            });
+        }
+
         const punchInTime = staffAttendance.punchInTime;
+        const nowUTC = new Date();
+
+        const diffInHours =
+            (nowUTC.getTime() - punchInTime.getTime()) / (1000 * 60 * 60);
+
+        if (diffInHours > 12) {
+            return sendResponse({
+                res,
+                status: 403,
+                tag: "punchOutTimeExceeded",
+                message: "Punch-out is allowed only within 12 hours of punch-in.",
+                log
+            });
+        }
+
         const workedHours = moment().diff(moment(punchInTime), "hours", true);
 
         let attendanceStatus;
