@@ -586,3 +586,49 @@ enum AttendanceStatus {
   EXCUSED
   HOLIDAY
 }
+
+model ChatRoom {
+  id          Int           @id @default(autoincrement())
+  type        ChatRoomType  // DIRECT or GROUP
+  name        String?       // for group chats
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  participants ChatParticipant[]
+  messages     ChatMessage[]
+}
+
+enum ChatRoomType {
+  DIRECT
+  GROUP
+}
+
+model ChatParticipant {
+  id         Int      @id @default(autoincrement())
+  chatRoomId Int
+  userId     Int
+  joinedAt   DateTime @default(now())
+
+  chatRoom  ChatRoom @relation(fields: [chatRoomId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([chatRoomId, userId])
+}
+
+model ChatMessage {
+  id          Int        @id @default(autoincrement())
+  chatRoomId Int
+  senderId   Int
+  content    String
+  type       MessageType @default(TEXT)
+  createdAt  DateTime    @default(now())
+
+  chatRoom  ChatRoom @relation(fields: [chatRoomId], references: [id])
+  sender    User     @relation(fields: [senderId], references: [id])
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+}
