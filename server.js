@@ -3,6 +3,9 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 require('dotenv').config();
 
+const http = require('http');
+const { initSocket } = require('./sockets/chat.socket');
+
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
@@ -30,9 +33,20 @@ app.use('/api/fee-payments', require('./routes/feePaymentRoutes'));
 
 app.use('/api/attendance', require('./routes/attendanceRoutes'));
 
+app.use('/api/chat', require('./routes/chatRoutes'));
+
 app.get('/', (req, res) => {
   res.send('Education Portal API is running...');
 });
 
+// 👉 Create a real HTTP server
+const server = http.createServer(app);
+
+// 👉 Initialize socket and attach to server
+initSocket(server);
+
+// 👉 Start listening
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () =>
+  console.log(`🚀 Server + Socket.IO running on port ${PORT}`)
+);

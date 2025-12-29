@@ -34,6 +34,9 @@ model User {
   classroomStudents ClassroomStudent[]
   submissions       Submission[]
 
+  chatParticipant   ChatParticipant[]
+  chatMessage       ChatMessage[]
+
   assignedFeeAssignments FeeAssignment[] @relation("AssignedByUser")
   receivedPayments       FeePayment[]    @relation("ReceivedByUser")
 
@@ -594,6 +597,8 @@ model ChatRoom {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
+  createdBy   Int
+  updatedBy   Int
   participants ChatParticipant[]
   messages     ChatMessage[]
 }
@@ -616,19 +621,33 @@ model ChatParticipant {
 }
 
 model ChatMessage {
-  id          Int        @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   chatRoomId Int
   senderId   Int
-  content    String
-  type       MessageType @default(TEXT)
-  createdAt  DateTime    @default(now())
+  content    String?
+  messageType MessageType @default(TEXT)
+  fileId     Int?     // 👈 link to file
+  createdAt  DateTime @default(now())
 
   chatRoom  ChatRoom @relation(fields: [chatRoomId], references: [id])
   sender    User     @relation(fields: [senderId], references: [id])
+  file      File?    @relation(fields: [fileId], references: [id])
 }
 
 enum MessageType {
   TEXT
   IMAGE
   FILE
+}
+
+model File {
+  id          Int      @id @default(autoincrement())
+  name        String
+  type        String      // MIME type (image/png, application/pdf)
+  size        Int         // bytes
+  data        Bytes?      // 👈 Binary now (later replace with url)
+  url         String?     // 👈 Future AWS S3 URL
+  uploadedAt  DateTime @default(now())
+
+  chatMessage ChatMessage[]
 }
