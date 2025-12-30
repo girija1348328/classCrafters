@@ -4,146 +4,85 @@ const logger = require("../config/logger");
 const { sendResponse } = require("../utils/responseLogger.js");
 const { getIO } = require("../sockets/chat.socket");
 
-// exports.getOrCreateDirectChat = async (req, res) => {
-//     const log = logger.child({
-//         handler: "ChatController.getOrCreateDirectChat",
-//         body: req.body
-//     });
+exports.getOrCreateDirectChat = async (req, res) => {
+    const log = logger.child({
+        handler: "ChatController.getOrCreateDirectChat",
+        body: req.body
+    });
 
-//     try {
-//         const { receiverId } = req.body;
-//         const senderId = req.user.id;
+    try {
+        const { receiverId } = req.body;
+        const senderId = req.user.id;
 
-//         if (!receiverId) {
-//             return sendResponse({
-//                 res,
-//                 status: 400,
-//                 tag: "missingField",
-//                 message: "receiverId is required",
-//                 log
-//             });
-//         }
+        if (!receiverId) {
+            return sendResponse({
+                res,
+                status: 400,
+                tag: "missingField",
+                message: "receiverId is required",
+                log
+            });
+        }
 
-//         // 🔍 Check if DIRECT chat already exists
-//         const existingRoom = await prisma.chatRoom.findFirst({
-//             where: {
-//                 type: "DIRECT",
-//                 participants: {
-//                     every: {
-//                         userId: { in: [senderId, receiverId] }
-//                     }
-//                 }
-//             },
-//             include: { participants: true }
-//         });
+        // 🔍 Check if DIRECT chat already exists
+        const existingRoom = await prisma.chatRoom.findFirst({
+            where: {
+                type: "DIRECT",
+                participants: {
+                    every: {
+                        userId: { in: [senderId, receiverId] }
+                    }
+                }
+            },
+            include: { participants: true }
+        });
 
-//         if (existingRoom) {
-//             return sendResponse({
-//                 res,
-//                 status: 200,
-//                 tag: "success",
-//                 message: "Chat room fetched successfully",
-//                 data: existingRoom,
-//                 log
-//             });
-//         }
+        if (existingRoom) {
+            return sendResponse({
+                res,
+                status: 200,
+                tag: "success",
+                message: "Chat room fetched successfully",
+                data: existingRoom,
+                log
+            });
+        }
 
-//         // 🆕 Create new DIRECT chat room
-//         const room = await prisma.chatRoom.create({
-//             data: {
-//                 type: "DIRECT",
-//                 participants: {
-//                     createMany: {
-//                         data: [
-//                             { userId: senderId },
-//                             { userId: receiverId }
-//                         ]
-//                     }
-//                 }
-//             }
-//         });
+        // 🆕 Create new DIRECT chat room
+        const room = await prisma.chatRoom.create({
+            data: {
+                type: "DIRECT",
+                participants: {
+                    createMany: {
+                        data: [
+                            { userId: senderId },
+                            { userId: receiverId }
+                        ]
+                    }
+                }
+            }
+        });
 
-//         return sendResponse({
-//             res,
-//             status: 201,
-//             tag: "success",
-//             message: "Chat room created successfully",
-//             data: room,
-//             log
-//         });
+        return sendResponse({
+            res,
+            status: 201,
+            tag: "success",
+            message: "Chat room created successfully",
+            data: room,
+            log
+        });
 
-//     } catch (err) {
-//         log.error(err, "Failed to create/get direct chat");
-//         return sendResponse({
-//             res,
-//             status: 500,
-//             tag: "serverError",
-//             message: "Internal server error",
-//             log
-//         });
-//     }
-// };
-
-// exports.createGroupChat = async (req, res) => {
-//     const log = logger.child({
-//         handler: "ChatController.createGroupChat",
-//         body: req.body
-//     });
-
-//     try {
-//         const { name, userIds } = req.body;
-//         const creatorId = req.user.id;
-
-//         if (!name || !Array.isArray(userIds) || userIds.length < 1) {
-//             return sendResponse({
-//                 res,
-//                 status: 400,
-//                 tag: "invalidInput",
-//                 message: "Group name and at least one user are required.",
-//                 log
-//             });
-//         }
-
-//         // Add creator to participant list if not included
-//         const participants = Array.from(
-//             new Set([...userIds, creatorId])
-//         );
-
-//         const room = await prisma.chatRoom.create({
-//             data: {
-//                 type: "GROUP",
-//                 name,
-//                 participants: {
-//                     createMany: {
-//                         data: participants.map(userId => ({ userId }))
-//                     }
-//                 }
-//             },
-//             include: {
-//                 participants: true
-//             }
-//         });
-
-//         return sendResponse({
-//             res,
-//             status: 201,
-//             tag: "success",
-//             message: "Group chat created successfully.",
-//             data: room,
-//             log
-//         });
-
-//     } catch (err) {
-//         log.error(err, "Failed to create group chat");
-//         return sendResponse({
-//             res,
-//             status: 500,
-//             tag: "serverError",
-//             message: "Internal server error",
-//             log
-//         });
-//     }
-// };
+    } catch (err) {
+        log.error(err, "Failed to create/get direct chat");
+        return sendResponse({
+            res,
+            status: 500,
+            tag: "serverError",
+            message: "Internal server error",
+            log
+        });
+    }
+};
 
 exports.createRoom = async (req, res) => {
     const log = logger.child({

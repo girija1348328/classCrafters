@@ -129,18 +129,22 @@ exports.staffPunchIn = async (req, res) => {
             });
         }
 
+        const whereQuery = {};
         if (staffRegId) {
-            const staffRegd = await prisma.staffRegistration.findUnique({ where: { id: staffRegId } });
-            if (!staffRegd) {
-                return sendResponse({
-                    res,
-                    status: 404,
-                    tag: "notFound",
-                    message: "No staff found with the specified regd. id.",
-                    log
-                });
-            }
-            id = staffRegd.id;
+            whereQuery.id = staffRegId;
+        } else {
+            whereQuery.user_id = id;
+        }
+
+        const staffRegd = await prisma.staffRegistration.findFirst({ where: whereQuery });
+        if (!staffRegd) {
+            return sendResponse({
+                res,
+                status: 404,
+                tag: "notFound",
+                message: "No staff found with the specified regd. id.",
+                log
+            });
         }
 
         const now = new Date();
@@ -189,7 +193,7 @@ exports.staffPunchIn = async (req, res) => {
         attendance = await prisma.staffAttendance.create(
             {
                 data: {
-                    staffRegId: id,
+                    staffRegId: staffRegd.id,
                     institutionId,
                     ...(remarks && { punchInRemarks: remarks }),
                     punchInById: id
