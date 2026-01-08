@@ -143,9 +143,17 @@ exports.getAllTeacher = async (req, res) => {
   });
   try {
     const teachers = await prisma.user.findMany({
-      where: { role: { name: 'teacher' } },
+      where: { 
+        role: { 
+          name: {
+            in: ['teacher', 'Teacher', 'TEACHER']
+          }
+        } 
+      },
       include: { role: true }
     });
+    console.log("DEBUG: Teachers found =>", teachers);
+    console.log("DEBUG: Teachers count =>", teachers.length);
     return sendResponse({
       res,
       status: 200,
@@ -155,6 +163,7 @@ exports.getAllTeacher = async (req, res) => {
       log
     });
   } catch (err) {
+    console.error("DEBUG: getAllTeacher Error =>", err);
     log.error(err, "Unexpected error during fetching teachers."); 
     if (err.code === "P1001") {
       return sendResponse({
