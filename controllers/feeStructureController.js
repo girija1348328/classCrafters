@@ -51,7 +51,7 @@ exports.addHeads = async (req, res) => {
   try {
     const fee_structure_id = Number(req.params.id);
     const { heads } = req.body;
-
+    console.log("Heads",heads);
     // ✅ Ensure Fee Structure exists
     const feeStructure = await prisma.feeStructure.findUnique({
       where: { id: fee_structure_id }

@@ -53,6 +53,7 @@ module.exports = async function (req, res, next) {
       id: user.id,
       email: user.email,
       role_id: user.role_id,
+      role:decoded.role,
       institution_id,
     };
 

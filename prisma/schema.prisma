@@ -34,8 +34,8 @@ model User {
   classroomStudents ClassroomStudent[]
   submissions       Submission[]
 
-  chatParticipant   ChatParticipant[]
-  chatMessage       ChatMessage[]
+  chatParticipant ChatParticipant[]
+  chatMessage     ChatMessage[]
 
   assignedFeeAssignments FeeAssignment[] @relation("AssignedByUser")
   receivedPayments       FeePayment[]    @relation("ReceivedByUser")
@@ -47,6 +47,9 @@ model User {
   created_at         DateTime            @default(now())
   updated_at         DateTime            @updatedAt
   studentAttendances StudentAttendance[]
+
+  quizzes  Quiz[]        @relation("AdminQuizzes")
+  attempts QuizAttempt[]
 }
 
 model EducationType {
@@ -219,6 +222,8 @@ model Classroom {
   assignments Assignment[]
 
   studentAttendance StudentAttendance[]
+
+  quizzes Quiz[]
 
   createdAt DateTime @default(now())
 
@@ -591,14 +596,14 @@ enum AttendanceStatus {
 }
 
 model ChatRoom {
-  id          Int           @id @default(autoincrement())
-  type        ChatRoomType  // DIRECT or GROUP
-  name        String?       // for group chats
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id        Int          @id @default(autoincrement())
+  type      ChatRoomType // DIRECT or GROUP
+  name      String? // for group chats
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
-  createdBy   Int
-  updatedBy   Int
+  createdBy    Int
+  updatedBy    Int
   participants ChatParticipant[]
   messages     ChatMessage[]
 }
@@ -614,24 +619,24 @@ model ChatParticipant {
   userId     Int
   joinedAt   DateTime @default(now())
 
-  chatRoom  ChatRoom @relation(fields: [chatRoomId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  chatRoom ChatRoom @relation(fields: [chatRoomId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
 
   @@unique([chatRoomId, userId])
 }
 
 model ChatMessage {
-  id         Int      @id @default(autoincrement())
-  chatRoomId Int
-  senderId   Int
-  content    String?
+  id          Int         @id @default(autoincrement())
+  chatRoomId  Int
+  senderId    Int
+  content     String?
   messageType MessageType @default(TEXT)
-  fileId     Int?     // 👈 link to file
-  createdAt  DateTime @default(now())
+  fileId      Int? // 👈 link to file
+  createdAt   DateTime    @default(now())
 
-  chatRoom  ChatRoom @relation(fields: [chatRoomId], references: [id])
-  sender    User     @relation(fields: [senderId], references: [id])
-  file      File?    @relation(fields: [fileId], references: [id])
+  chatRoom ChatRoom @relation(fields: [chatRoomId], references: [id])
+  sender   User     @relation(fields: [senderId], references: [id])
+  file     File?    @relation(fields: [fileId], references: [id])
 }
 
 enum MessageType {
@@ -641,13 +646,97 @@ enum MessageType {
 }
 
 model File {
-  id          Int      @id @default(autoincrement())
-  name        String
-  type        String      // MIME type (image/png, application/pdf)
-  size        Int         // bytes
-  data        Bytes?      // 👈 Binary now (later replace with url)
-  url         String?     // 👈 Future AWS S3 URL
-  uploadedAt  DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  name       String
+  type       String // MIME type (image/png, application/pdf)
+  size       Int // bytes
+  data       Bytes? // 👈 Binary now (later replace with url)
+  url        String? // 👈 Future AWS S3 URL
+  uploadedAt DateTime @default(now())
 
   chatMessage ChatMessage[]
+}
+
+model Quiz {
+  id              Int     @id @default(autoincrement())
+  title           String
+  description     String?
+  durationSeconds Int
+  totalMarks      Int     @default(0)
+  isPublished     Boolean @default(false)
+
+  createdById Int
+  createdBy   User @relation("AdminQuizzes", fields: [createdById], references: [id])
+
+  classroomId Int?
+  classroom   Classroom? @relation(fields: [classroomId], references: [id])
+
+  questions Question[]
+  attempts  QuizAttempt[]
+
+  created_at DateTime @default(now())
+}
+
+model Question {
+  id     Int  @id @default(autoincrement())
+  quizId Int
+  quiz   Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  questionText String
+  marks        Int    @default(1)
+
+  options Option[]
+  answers QuizAnswer[]
+
+  created_at DateTime @default(now())
+}
+
+model Option {
+  id         Int      @id @default(autoincrement())
+  questionId Int
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  optionText String
+  isCorrect  Boolean @default(false)
+
+  answers QuizAnswer[] // ✅ required for Prisma
+}
+
+model QuizAttempt {
+  id     Int  @id @default(autoincrement())
+  quizId Int
+  quiz   Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  studentId Int
+  student   User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  startTime  DateTime
+  endTime    DateTime?
+  score      Int           @default(0)
+  percentage Float?
+  status     AttemptStatus
+
+  answers QuizAnswer[]
+
+  created_at DateTime @default(now())
+}
+
+model QuizAnswer {
+  id        Int         @id @default(autoincrement())
+  attemptId Int
+  attempt   QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  questionId Int
+  question   Question @relation(fields: [questionId], references: [id])
+
+  selectedOptionId Int?
+  selectedOption   Option? @relation(fields: [selectedOptionId], references: [id])
+
+  isCorrect Boolean?
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  TIMED_OUT
 }

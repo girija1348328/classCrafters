@@ -136,6 +136,46 @@ exports.getAll = async (req, res) => {
   }
 };
 
+exports.getAllTeacher = async (req, res) => {
+  const log = logger.child({
+    handler: "UserController.getAllTeacher",
+    query: req.query
+  });
+  try {
+    const teachers = await prisma.user.findMany({
+      where: { role: { name: 'teacher' } },
+      include: { role: true }
+    });
+    return sendResponse({
+      res,
+      status: 200,
+      tag: "success",
+      message: "Teachers retrieved successfully.",
+      data: { teachers },
+      log
+    });
+  } catch (err) {
+    log.error(err, "Unexpected error during fetching teachers."); 
+    if (err.code === "P1001") {
+      return sendResponse({
+        res,
+        status: 503,
+        tag: "databaseUnavailable",
+        message: "Database connection failed. Please try again later.",
+        log
+      });
+    }
+
+    return sendResponse({
+      res,
+      status: 500,
+      tag: "serverError",
+      message: "An internal server error occurred.",
+      log
+    });
+  }
+};
+
 exports.getById = async (req, res) => {
   const log = logger.child({
     handler: "UserController.getById",

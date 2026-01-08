@@ -1,6 +1,8 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+
 
 // Create a new classroom
 const createClassroom = async (req, res) => {
@@ -354,43 +356,117 @@ const getStudentClassrooms = async (req, res) => {
     }
 };
 
-const videoConferenceJetsi = async (req, res) => {
+const videoConferenceJitsi = async (req, res) => {
     try {
         const { room } = req.params;
+        const user = req.user;
 
         if (!room) {
             return res.status(400).json({ error: "Room name is required" });
         }
+        console.log("user:", user);
 
         const payload = {
             aud: "jitsi",
-            iss: "chat",  // must be "chat"
-            sub: process.env.JITSI_TENANT, // vpaas-magic-cookie-202a87...
-            room: room, // or "*"
+            iss: "chat",
+            sub: process.env.JITSI_TENANT, // MUST match tenant
+            room: room,
             exp: Math.floor(Date.now() / 1000) + 60 * 60,
+
             context: {
                 user: {
-                    name: "Student Name",
-                    email: "student@email.com",
+                    name: "teacher",
+                    email: user.email,
                     moderator: true,
                 },
             },
+
             features: {
-                recording: true,
-                livestreaming: true,
-                transcription: true,
-                "outbound-call": true,
-            }
+                recording: false,
+                livestreaming: false,
+                transcription: false,
+                "outbound-call": false,
+            },
         };
 
-        const token = jwt.sign(payload, process.env.JITSI_APP_SECRET, {
-            algorithm: "HS256", header: {
-                kid: process.env.JITSI_API_KEY_ID  // <-- add this
+        const token = jwt.sign(
+            payload,
+            process.env.JITSI_PRIVATE_KEY.replace(/\\n/g, "\n"),
+            {
+                algorithm: "RS256",
+                header: {
+                    kid: process.env.JITSI_KID, // MUST match dashboard
+                    typ: "JWT",
+                },
             }
-        });
-        return res.json({ token });
+        );
+        console.log("Generated Jitsi JWT:", token);
+        res.json({ token });
     } catch (error) {
-        console.error("JWT generation error:", error.message);
+        console.error("Jitsi JWT error:", error);
+        res.status(500).json({ error: "Failed to generate token" });
+    }
+};
+
+function generateZegoToken(
+    appID,
+    serverSecret,
+    userID,
+    roomID,
+    effectiveTimeInSeconds = 3600
+) {
+    const payload = {
+        app_id: appID,
+        user_id: userID,
+        nonce: Math.floor(Math.random() * 100000),
+        ctime: Math.floor(Date.now() / 1000),
+        expire: effectiveTimeInSeconds,
+        payload: {
+            room_id: roomID,
+        },
+    };
+
+    const payloadString = JSON.stringify(payload);
+
+    const signature = crypto
+        .createHmac("sha256", serverSecret)
+        .update(payloadString)
+        .digest("hex");
+
+    const token = Buffer.from(
+        JSON.stringify({
+            payload,
+            signature,
+        })
+    ).toString("base64");
+
+    return token;
+}
+
+
+const videoConferenceZego = async (req, res) => {
+    try {
+        const { classroomId } = req.params;
+        const user = req.user; // from auth
+
+        const roomID = `classroom-${classroomId}`;
+        const userID = user.id.toString();
+
+        const token = generateZegoToken(
+            process.env.ZEGO_APP_ID,
+            process.env.ZEGO_SERVER_SECRET,
+            userID,
+            roomID
+        );
+        console.log("Generated Zego JWT:", token);
+        res.json({
+            token,
+            roomID,
+            userID,
+            userName:"Girija",
+        });
+    } catch (error) {
+        console.error("Zego JWT error:", error);
         res.status(500).json({ error: "Failed to generate token" });
     }
 }
@@ -406,5 +482,6 @@ module.exports = {
     getClassroomStudents,
     getTeacherClassrooms,
     getStudentClassrooms,
-    videoConferenceJetsi
+    videoConferenceJitsi,
+    videoConferenceZego
 };
