@@ -7,9 +7,11 @@ const {
     createRoom,
     sendMessage,
     fetchChatList,
-    fetchMessages
+    fetchMessages,
+    getOrCreateDirectChat
 } = require("../controllers/chatController");
 
+router.post("/getOrCreateDirectChat", verifyToken, getOrCreateDirectChat);
 router.post("/createRoom", verifyToken, createRoom);
 router.post("/sendMessage", verifyToken, upload.single("file"), sendMessage);
 router.get("/fetchChatList", verifyToken, fetchChatList);

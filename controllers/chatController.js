@@ -43,7 +43,9 @@ exports.getOrCreateDirectChat = async (req, res) => {
                 status: 200,
                 tag: "success",
                 message: "Chat room fetched successfully",
-                data: existingRoom,
+                data: {
+                    room: existingRoom
+                },
                 log
             });
         }
@@ -52,6 +54,8 @@ exports.getOrCreateDirectChat = async (req, res) => {
         const room = await prisma.chatRoom.create({
             data: {
                 type: "DIRECT",
+                createdBy: senderId,
+                updatedBy: senderId,
                 participants: {
                     createMany: {
                         data: [
@@ -60,6 +64,9 @@ exports.getOrCreateDirectChat = async (req, res) => {
                         ]
                     }
                 }
+            },
+            include: {
+                participants: true
             }
         });
 
@@ -68,7 +75,9 @@ exports.getOrCreateDirectChat = async (req, res) => {
             status: 201,
             tag: "success",
             message: "Chat room created successfully",
-            data: room,
+            data: {
+                room
+            },
             log
         });
 
