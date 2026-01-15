@@ -50,6 +50,9 @@ model User {
 
   quizzes  Quiz[]        @relation("AdminQuizzes")
   attempts QuizAttempt[]
+  enquiry Enquiry[]
+
+
 }
 
 model EducationType {
@@ -224,6 +227,8 @@ model Classroom {
   studentAttendance StudentAttendance[]
 
   quizzes Quiz[]
+
+  enquiry Enquiry[]
 
   createdAt DateTime @default(now())
 
@@ -740,3 +745,69 @@ enum AttemptStatus {
   SUBMITTED
   TIMED_OUT
 }
+
+
+model Enquiry {
+  id                Int       @id @default(autoincrement())
+
+  name              String
+  phone             String
+  email             String?
+  address           String?
+  description       String?
+
+  status            EnquiryStatus @default(NEW)
+  source            EnquirySource?
+
+  enquiryDate       DateTime  @default(now())
+  nextFollowUpDate  DateTime?
+
+  assignedUserId    Int
+  classroomId       Int
+
+  assignedUser      User      @relation(fields: [assignedUserId], references: [id])
+  classroom         Classroom @relation(fields: [classroomId], references: [id])
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+
+enum EnquiryStatus {
+  NEW
+  CONTACTED
+  FOLLOW_UP
+  CONVERTED
+  CLOSED
+}
+
+enum EnquirySource {
+  WEBSITE
+  WALK_IN
+  PHONE
+  WHATSAPP
+  REFERRAL
+}
+
+
+model VisitorBook {
+  id Int @id @default(autoincrement())
+  purpose String 
+  meetingWith MeetingWithRole default(STAFF)
+  visitorName String
+  phone Int
+  idCard String
+  numberOfPerson Int
+  date DateTime
+  inTime DateTime
+  outTime DateTime
+  note String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+enum MeetingWithRole{
+  STAFF
+  STUDENT
+}
+

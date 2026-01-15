@@ -30,11 +30,10 @@ app.use('/api/submissions', require('./routes/submissionRoutes'));
 app.use('/api/fee-structures', require('./routes/feeStructureRoutes'));
 app.use('/api/fee-assignments', require('./routes/feeAssignmentRoutes'));
 app.use('/api/fee-payments', require('./routes/feePaymentRoutes'));
-
 app.use('/api/attendance', require('./routes/attendanceRoutes'));
-
 app.use('/api/chat', require('./routes/chatRoutes'));
 app.use('/api/quizzes', require('./routes/quizzRoutes'));
+app.use('/api/enquiries', require('./routes/enquiryRoutes'));
 
 app.get('/', (req, res) => {
   res.send('Education Portal API is running...');
