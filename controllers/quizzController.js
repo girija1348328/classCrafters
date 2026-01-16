@@ -1,4 +1,4 @@
-import { PrismaClient, AttemptStatus } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
