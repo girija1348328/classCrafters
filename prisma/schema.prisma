@@ -793,14 +793,14 @@ enum EnquirySource {
 model VisitorBook {
   id Int @id @default(autoincrement())
   purpose String 
-  meetingWith MeetingWithRole default(STAFF)
+  meetingWith MeetingWithRole @default(STAFF)
   visitorName String
-  phone Int
+  phone String
   idCard String
   numberOfPerson Int
   date DateTime
-  inTime DateTime
-  outTime DateTime
+  inTime DateTime @default(now())
+  outTime DateTime?
   note String
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt

@@ -33,7 +33,10 @@ app.use('/api/fee-payments', require('./routes/feePaymentRoutes'));
 app.use('/api/attendance', require('./routes/attendanceRoutes'));
 app.use('/api/chat', require('./routes/chatRoutes'));
 app.use('/api/quizzes', require('./routes/quizzRoutes'));
-app.use('/api/enquiries', require('./routes/enquiryRoutes'));
+app.use('/api/enquiries', require('./routes/frontOfficeRoutes'));
+app.use('/api/visitorBook', require('./routes/frontOfficeRoutes'));
+
+
 
 app.get('/', (req, res) => {
   res.send('Education Portal API is running...');
