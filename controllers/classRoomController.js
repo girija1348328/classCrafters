@@ -2,6 +2,8 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const logger = require("../config/logger");
+const { sendResponse } = require("../utils/responseLogger.js");
 
 
 // Create a new classroom
@@ -463,13 +465,98 @@ const videoConferenceZego = async (req, res) => {
             token,
             roomID,
             userID,
-            userName:"Girija",
+            userName: "Girija",
         });
     } catch (error) {
         console.error("Zego JWT error:", error);
         res.status(500).json({ error: "Failed to generate token" });
     }
 }
+
+const getStudentsByClassroomId = async (req, res) => {
+    const log = logger.child({
+        handler: "ClassroomController.getStudentsByClassroomId",
+        query: req.query,
+        user: req.user
+    });
+
+    try {
+        const classroomId = parseInt(req.query.classroomId);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        if (!classroomId) {
+            return sendResponse({
+                res,
+                status: 400,
+                tag: "missingField",
+                message: "Missing required fields: classroomId.",
+                log
+            });
+        }
+
+        // Total count
+        const totalCount = await prisma.classroomStudent.count({
+            where: { classroomId }
+        });
+
+        // Paginated students
+        const students = await prisma.classroomStudent.findMany({
+            where: { classroomId },
+            skip,
+            take: limit,
+            orderBy: { id: "asc" },
+            include: {
+                student: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                }
+            }
+        });
+
+        const meta = {
+            totalCount,
+            currentPage: page,
+            totalPages: Math.ceil(totalCount / limit),
+            pageSize: limit
+        };
+
+        return sendResponse({
+            res,
+            status: 200,
+            tag: "success",
+            message: "Students retrieved successfully.",
+            data: { students },
+            meta,
+            log
+        });
+
+    } catch (err) {
+        log.error(err, "Unexpected error occurred while fetching students by classroomId.");
+
+        if (err.code === "P1001") {
+            return sendResponse({
+                res,
+                status: 503,
+                tag: "databaseUnavailable",
+                message: "Database connection failed. Please try again later.",
+                log
+            });
+        }
+
+        return sendResponse({
+            res,
+            status: 500,
+            tag: "serverError",
+            message: "An internal server error occurred.",
+            log
+        });
+    }
+};
 
 module.exports = {
     createClassroom,
@@ -483,5 +570,6 @@ module.exports = {
     getTeacherClassrooms,
     getStudentClassrooms,
     videoConferenceJitsi,
-    videoConferenceZego
+    videoConferenceZego,
+    getStudentsByClassroomId
 };

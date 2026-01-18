@@ -426,3 +426,103 @@ exports.fetchMessages = async (req, res) => {
         });
     }
 };
+
+exports.searchUserOrRoom = async (req, res) => {
+    const log = logger.child({
+        handler: "ChatController.searchUserOrRoom",
+        query: req.query,
+        user: req.user.id
+    });
+    try {
+        const userId = req.user.id;
+        const { searchValue } = req.query;
+
+        if (!searchValue || searchValue.trim().length < 2) {
+            return sendResponse({
+                res,
+                status: 400,
+                tag: "invalidSearch",
+                message: "Search query must be at least 2 characters.",
+                log
+            });
+        }
+
+        /* -------- SEARCH USERS -------- */
+        const users = await prisma.user.findMany({
+            where: {
+                id: { not: userId },
+                name: {
+                    contains: searchValue,
+                    mode: "insensitive"
+                }
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true
+            },
+            take: 10
+        });
+
+        const normalizedUsers = users.map(user => ({
+            id: user.id,
+            name: user.name,
+            type: "USER",
+            email: user.email
+        }));
+
+        /* -------- SEARCH GROUPS -------- */
+        const groups = await prisma.chatParticipant.findMany({
+            where: {
+                userId,
+                chatRoom: {
+                    type: "GROUP",
+                    name: {
+                        contains: searchValue,
+                        mode: "insensitive"
+                    }
+                }
+            },
+            select: {
+                chatRoom: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                }
+            },
+            take: 10
+        });
+
+        const normalizedGroups = groups.map(g => ({
+            id: g.chatRoom.id,
+            name: g.chatRoom.name,
+            type: "GROUP"
+        }));
+
+        const combinedResults = [...normalizedUsers, ...normalizedGroups]
+            .sort((a, b) =>
+                a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+            );
+
+        return sendResponse({
+            res,
+            status: 200,
+            tag: "success",
+            message: "Search results fetched successfully.",
+            data: {
+                result: combinedResults
+            },
+            log
+        });
+    } catch (err) {
+        log.error(err, "Failed to search user or room");
+        return sendResponse({
+            res,
+            status: 500,
+            tag: "serverError",
+            message: "Internal server error",
+            log
+        });
+    }
+}

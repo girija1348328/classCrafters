@@ -433,7 +433,7 @@ exports.getStudentAttendance = async (req, res) => {
             meta,
             log
         });
-    } catch (ex) {
+    } catch (err) {
         log.error(err, "Unexpected error occurred while fetching student attendance.");
 
         if (err.code === "P1001") {
