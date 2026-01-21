@@ -35,6 +35,7 @@ app.use('/api/attendance', require('./routes/attendanceRoutes'));
 
 app.use('/api/chat', require('./routes/chatRoutes'));
 app.use('/api/quizzes', require('./routes/quizzRoutes'));
+app.use('/api/leave', require('./routes/leaveRequestRoutes'));
 
 app.get('/', (req, res) => {
   res.send('Education Portal API is running...');
