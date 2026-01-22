@@ -7,7 +7,8 @@ const {
   staffPunchIn,
   staffPunchOut,
   getStudentAttendance,
-  getStaffAttendance
+  getStaffAttendance,
+  getMyPunchInAttendance
 } = require('../controllers/attendanceController');
 
 // Assignment routes
@@ -16,5 +17,6 @@ router.post('/staffPunchIn', verifyToken, staffPunchIn);
 router.post('/staffPunchOut', verifyToken, staffPunchOut);
 router.get('/getStudentAttendance', verifyToken, getStudentAttendance);
 router.get('/getStaffAttendance', verifyToken, getStaffAttendance);
+router.get('/getMyPunchInAttendance', verifyToken, getMyPunchInAttendance);
 
 module.exports = router;

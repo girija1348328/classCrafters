@@ -50,6 +50,9 @@ model User {
 
   quizzes  Quiz[]        @relation("AdminQuizzes")
   attempts QuizAttempt[]
+
+  leaveRequests LeaveRequest[] @relation("LeaveApplicant")
+  leaveReviews  LeaveRequest[] @relation("LeaveReviewer")
 }
 
 model EducationType {
@@ -210,6 +213,8 @@ model Classroom {
   name String
 
   subject String?
+
+  section String?
 
   description String?
 
@@ -739,4 +744,40 @@ enum AttemptStatus {
   IN_PROGRESS
   SUBMITTED
   TIMED_OUT
+}
+
+model LeaveRequest {
+  id            Int           @id @default(autoincrement())
+  applicantId   Int           // staff or student (User)
+  leaveType     LeaveType
+  className     String?
+  section       String?
+  classroomId   Int?
+  classroom     Classroom?    @relation(fields: [classroomId], references: [id])
+  startDate     DateTime
+  endDate       DateTime
+  reason        String?
+  status        LeaveStatus   @default(PENDING)
+  appliedAt     DateTime      @default(now())
+  reviewedAt    DateTime?
+  reviewedById  Int?
+  remarks       String?
+
+  applicant     User          @relation("LeaveApplicant", fields: [applicantId], references: [id])
+  reviewedBy    User?         @relation("LeaveReviewer", fields: [reviewedById], references: [id])
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum LeaveType {
+  SICK
+  CASUAL
+  PAID
+  UNPAID
+  EMERGENCY
 }
