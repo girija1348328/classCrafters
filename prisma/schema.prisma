@@ -750,10 +750,6 @@ model LeaveRequest {
   id            Int           @id @default(autoincrement())
   applicantId   Int           // staff or student (User)
   leaveType     LeaveType
-  className     String?
-  section       String?
-  classroomId   Int?
-  classroom     Classroom?    @relation(fields: [classroomId], references: [id])
   startDate     DateTime
   endDate       DateTime
   reason        String?
