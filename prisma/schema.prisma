@@ -827,7 +827,29 @@ model Receive{
     referenceNo Int
     address String
     note String
-    toTitle DateTime
+    toTitle String
     created_at DateTime @default(now())
     updated_at DateTime @updatedAt
 }
+
+model Complain{
+    id Int @id @default(autoincrement())
+    complaint complaintType @default(MISBEHAVE)
+    source String
+    complainBy String
+    phone String
+    date DateTime @default(now())
+    description String
+    actionTaken String
+    assign String
+    note String
+    isDeleted Boolean @default(false)
+}
+
+enum complaintType {
+  EXAMLEAK
+  MISBEHAVE
+  ABUSE
+}
+
+

@@ -36,7 +36,8 @@ app.use('/api/quizzes', require('./routes/quizzRoutes'));
 app.use('/api/enquiries', require('./routes/frontOfficeRoutes'));
 app.use('/api/visitorBook', require('./routes/frontOfficeRoutes'));
 app.use('/api/dispatches', require('./routes/frontOfficeRoutes'));
-
+app.use('/api/receivePostals', require('./routes/frontOfficeRoutes'));
+app.use('/api/complains', require('./routes/frontOfficeRoutes'));
 
 app.get('/', (req, res) => {
   res.send('Education Portal API is running...');

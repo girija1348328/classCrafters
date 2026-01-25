@@ -58,7 +58,7 @@ exports.getAllEnquiries = async (req, res) => {
                 assignedUser: true,
                 classroom: true,
             },
-            orderBy: { createdAt: "desc" },
+            orderBy: { created_at: "desc" },
         });
 
         res.json({ success: true, data: enquiries });
@@ -632,7 +632,7 @@ exports.createReceivePostal = async (req, res) => {
 exports.getReceivePostals = async (req, res) => {
     try {
         const receivePostals = await prisma.receive.findMany({
-            orderBy: { createdAt: "desc" }
+            orderBy: { created_at: "desc" }
         });
         res.json({
             success: true,
@@ -712,6 +712,129 @@ exports.deleteReceivePostal = async (req, res) => {
     catch (error) {
         console.error("DELETE RECEIVE POSTAL ERROR:", error);
         res.status(500).json({  
+            success: false,
+            message: error.message
+        });
+    }
+}
+
+exports.createComplaint = async (req, res) => {
+    // To be implemented
+    try{
+        const {complaint,source,complainBy,phone,date,description,actionTaken,assign,note}  = req.body;
+        const complaintData = await prisma.complain.create({
+            data: {
+                complaint,
+                source,
+                complainBy,
+                phone,
+                date,
+                description,
+                actionTaken,
+                assign,
+                note
+            }
+        });
+        return res.status(201).json({
+            success: true,
+            message: "Complaint created",
+            data: complaintData
+        });
+    }
+    catch(error){
+        console.error("CREATE COMPLAINT ERROR:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+}
+
+exports.getComplaints = async (req, res) => {
+    // To be implemented
+    try{
+        const complaints = await prisma.complain.findMany({
+            orderBy: { date: "desc" }
+        });
+        res.json({
+            success: true,
+            count: complaints.length,
+            data: complaints
+        });
+    }   
+    catch (error) {
+        console.error("GET COMPLAINTS ERROR:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }   
+};
+
+exports.getComplaintById = async (req, res) => {    
+    // To be implemented
+    try{
+        const { id } = req.params;
+        const complaint = await prisma.complain.findUnique({
+            where: { id: Number(id) }
+        }); 
+        if (!complaint) {
+            return res.status(404).json({
+                success: false, 
+                message: "Complaint not found"
+            });
+        }
+        res.json({ success: true, data: complaint });
+    }   
+    catch (error) {
+        console.error("GET COMPLAINT ERROR:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+exports.updateComplaint = async (req, res) => {
+    // To be implemented
+    try{
+        const { id } = req.params;
+        const complaint = await prisma.complain.update({
+            where: { id: Number(id) },
+            data: req.body
+        });
+        res.json({
+            success: true,
+            message: "Complaint updated",
+            data: complaint
+        });
+    }
+    catch (error) {
+        console.error("UPDATE COMPLAINT ERROR:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }   
+}
+
+exports.deleteComplaint = async (req, res) => { 
+    // To be implemented
+    try{
+        const { id } = req.params;  
+        await prisma.complain.update({
+            where: { id: Number(id) },
+            data: { isDeleted: true }
+        });
+        res.json({
+            success: true,
+            message: "Complaint deleted"
+        });
+    }
+    catch (error) {
+        console.error("DELETE COMPLAINT ERROR:", error);
+        res.status(500).json({
             success: false,
             message: error.message
         });
