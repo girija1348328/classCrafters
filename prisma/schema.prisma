@@ -811,3 +811,23 @@ enum MeetingWithRole{
   STUDENT
 }
 
+model Dispatch{
+    id Int @id @default(autoincrement())
+    referenceNo Int
+    address String
+    note String
+    fromTitle String
+    date DateTime
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+}
+
+model Receive{
+    id Int @id @default(autoincrement())
+    referenceNo Int
+    address String
+    note String
+    toTitle DateTime
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+}

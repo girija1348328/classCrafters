@@ -35,7 +35,7 @@ app.use('/api/chat', require('./routes/chatRoutes'));
 app.use('/api/quizzes', require('./routes/quizzRoutes'));
 app.use('/api/enquiries', require('./routes/frontOfficeRoutes'));
 app.use('/api/visitorBook', require('./routes/frontOfficeRoutes'));
-
+app.use('/api/dispatches', require('./routes/frontOfficeRoutes'));
 
 
 app.get('/', (req, res) => {

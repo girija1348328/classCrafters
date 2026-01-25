@@ -249,7 +249,7 @@ exports.createVisitor = async (req, res) => {
                 numberOfPerson,
                 note,
                 date,
-                inTime, 
+                inTime,
             }
         });
 
@@ -273,6 +273,7 @@ exports.createVisitor = async (req, res) => {
 ================================ */
 exports.getAllVisitors = async (req, res) => {
     try {
+        console.log("✅ GET ALL VISITORS - Query Params:", req.query);
         const { meetingWith, fromDate, toDate, active } = req.query;
 
         const where = {};
@@ -481,3 +482,238 @@ exports.getActiveVisitors = async (req, res) => {
         });
     }
 };
+
+exports.createDispatch = async (req, res) => {
+    try {
+        const { referenceNo, address, note, fromTitle, date } = req.body;
+        const dispatch = await prisma.dispatch.create({
+            data: {
+                referenceNo,
+                address,
+                note,
+                fromTitle,
+                date
+            }
+
+        });
+        res.status(201).json({
+            success: true,
+            message: "Dispatch created",
+            data: dispatch
+        });
+    }
+    catch (error) {
+        console.error("CREATE DISPATCH ERROR:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+}
+
+exports.getDispatch = async (req, res) => {
+    try {
+        const dispatches = await prisma.dispatch.findMany({
+            orderBy: { date: "desc" }
+        });
+        res.json({
+            success: true,
+            count: dispatches.length,
+            data: dispatches
+        });
+    }
+    catch (error) {
+        console.error("GET DISPATCH ERROR:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+exports.getDispatchById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const dispatch = await prisma.dispatch.findUnique({
+            where: { id: Number(id) }
+        });
+        if (!dispatch) {
+            return res.status(404).json({
+                success: false,
+                message: "Dispatch not found"
+            });
+        }
+        res.json({ success: true, data: dispatch });
+    } catch (error) {
+        console.error("GET DISPATCH ERROR:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+exports.updateDispatch = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const dispatch = await prisma.dispatch.update({
+            where: { id: Number(id) },
+            data: req.body
+        });
+        res.json({
+            success: true,
+            message: "Dispatch updated",
+            data: dispatch
+        });
+    }
+
+    catch (error) {
+        console.error("UPDATE DISPATCH ERROR:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+}
+
+exports.deleteDispatch = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await prisma.dispatch.delete({
+            where: { id: Number(id) }
+        });
+        res.json({
+            success: true,
+            message: "Dispatch deleted"
+        });
+    }
+    catch (error) {
+        console.error("DELETE DISPATCH ERROR:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+
+//===============================
+
+//receive
+
+exports.createReceivePostal = async (req, res) => {
+    try {
+        const { referenceNo, address, note, toTitle } = req.body;
+        const receivePostal = await prisma.receive.create({
+            data: {
+                referenceNo,
+                address,
+                note,
+                toTitle
+            }
+        });
+
+        return res.status(201).json({
+            success: true,
+            message: "Receive postal created",
+            data: receivePostal
+        });
+    }
+
+    catch (error) {
+        console.error("CREATE RECEIVE POSTAL ERROR:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+}
+
+exports.getReceivePostals = async (req, res) => {
+    try {
+        const receivePostals = await prisma.receive.findMany({
+            orderBy: { createdAt: "desc" }
+        });
+        res.json({
+            success: true,
+            count: receivePostals.length,
+            data: receivePostals
+        });
+    }
+    catch (error) {
+        console.error("GET RECEIVE POSTALS ERROR:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+exports.getReceivePostalsById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const receivePostal = await prisma.receive.findUnique({
+            where: { id: Number(id) }
+        });
+        if (!receivePostal) {
+            return res.status(404).json({
+                success: false,
+                message: "Receive postal not found"
+            });
+        }
+        res.json({ success: true, data: receivePostal });
+    }   
+
+    catch (error) {
+        console.error("GET RECEIVE POSTAL ERROR:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+exports.updateReceivePostal = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const receivePostal = await prisma.receive.update({
+            where: { id: Number(id) },
+            data: req.body
+        });
+        res.json({
+            success: true,
+            message: "Receive postal updated",
+            data: receivePostal
+        });
+    }
+
+    catch (error) {
+        console.error("UPDATE RECEIVE POSTAL ERROR:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+}
+
+exports.deleteReceivePostal = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await prisma.receive.update({
+            where: { id: Number(id) },  
+            data: { isDeleted: true }
+        });
+        res.json({
+            success: true,
+            message: "Receive postal deleted"
+        });
+    }
+
+    catch (error) {
+        console.error("DELETE RECEIVE POSTAL ERROR:", error);
+        res.status(500).json({  
+            success: false,
+            message: error.message
+        });
+    }
+}
