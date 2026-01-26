@@ -749,38 +749,6 @@ enum AttemptStatus {
   TIMED_OUT
 }
 
-model LeaveRequest {
-  id            Int           @id @default(autoincrement())
-  applicantId   Int           // staff or student (User)
-  leaveType     LeaveType
-  startDate     DateTime
-  endDate       DateTime
-  reason        String?
-  status        LeaveStatus   @default(PENDING)
-  appliedAt     DateTime      @default(now())
-  reviewedAt    DateTime?
-  reviewedById  Int?
-  remarks       String?
-
-  applicant     User          @relation("LeaveApplicant", fields: [applicantId], references: [id])
-  reviewedBy    User?         @relation("LeaveReviewer", fields: [reviewedById], references: [id])
-}
-
-enum LeaveStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  CANCELLED
-}
-
-enum LeaveType {
-  SICK
-  CASUAL
-  PAID
-  UNPAID
-  EMERGENCY
-}
-
 model SalaryStructure {
   id            Int      @id @default(autoincrement())
   staffId       Int      @unique
@@ -830,5 +798,37 @@ model PayrollItem {
 enum PayrollItemType {
   EARNING
   DEDUCTION
+}
+
+model LeaveRequest {
+  id            Int           @id @default(autoincrement())
+  applicantId   Int           // staff or student (User)
+  leaveType     LeaveType
+  startDate     DateTime
+  endDate       DateTime
+  reason        String?
+  status        LeaveStatus   @default(PENDING)
+  appliedAt     DateTime      @default(now())
+  reviewedAt    DateTime?
+  reviewedById  Int?
+  remarks       String?
+
+  applicant     User          @relation("LeaveApplicant", fields: [applicantId], references: [id])
+  reviewedBy    User?         @relation("LeaveReviewer", fields: [reviewedById], references: [id])
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum LeaveType {
+  SICK
+  CASUAL
+  PAID
+  UNPAID
+  EMERGENCY
 }
 
