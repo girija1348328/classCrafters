@@ -53,7 +53,6 @@ model User {
   enquiry Enquiry[]
 
 
-
   leaveRequests LeaveRequest[] @relation("LeaveApplicant")
   leaveReviews  LeaveRequest[] @relation("LeaveReviewer")
 }
@@ -219,7 +218,7 @@ model Student{
   gender Gender
   dob DateTime
   bloodGroup String
-  email 
+  email String
   phone String
   address String
 
@@ -322,8 +321,6 @@ model Classroom {
   name String
 
   subject String?
-
-  section String?
 
   description String?
 
