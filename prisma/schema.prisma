@@ -929,15 +929,23 @@ model LeaveRequest {
   reviewedBy    User?         @relation("LeaveReviewer", fields: [reviewedById], references: [id])
 }
 
+enum LeaveType {
+  SICK
+  CASUAL
+  PAID
+  UNPAID
+  EMERGENCY
+}
+
 enum LeaveStatus {
   PENDING
   APPROVED
   REJECTED
   CANCELLED
+}
 
 model Enquiry {
   id                Int       @id @default(autoincrement())
-
   name              String
   phone             String
   email             String?
