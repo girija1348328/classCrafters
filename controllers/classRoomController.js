@@ -21,7 +21,7 @@ const createClassroom = async (req, res) => {
             return res.status(404).json({ error: 'Teacher not found' });
         }
 
-        if (teacher.role.name !== 'teacher') {
+        if (teacher.role.name !== 'Teacher') {
             return res.status(400).json({ error: 'User is not a teacher' });
         }
 
