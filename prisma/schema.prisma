@@ -53,6 +53,9 @@ model User {
 
   leaveRequests LeaveRequest[] @relation("LeaveApplicant")
   leaveReviews  LeaveRequest[] @relation("LeaveReviewer")
+
+  salaryStructure SalaryStructure[] @relation("StaffSalary")
+  payroll         Payroll[]         @relation("StaffPayroll")
 }
 
 model EducationType {
@@ -777,3 +780,55 @@ enum LeaveType {
   UNPAID
   EMERGENCY
 }
+
+model SalaryStructure {
+  id            Int      @id @default(autoincrement())
+  staffId       Int      @unique
+  basicPay      Float
+  hra           Float?
+  allowances    Float?
+  deductions    Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  staff         User     @relation("StaffSalary",fields: [staffId], references: [id])
+}
+
+model Payroll {
+  id              Int           @id @default(autoincrement())
+  staffId         Int
+  month           Int           // 1–12
+  year            Int
+  grossSalary     Float
+  totalDeductions Float
+  netSalary       Float
+  status          PayrollStatus @default(GENERATED)
+  generatedAt     DateTime      @default(now())
+
+  staff           User          @relation("StaffPayroll",fields: [staffId], references: [id])
+
+  items PayrollItem[] @relation("PayrollItems")
+
+  @@unique([staffId, month, year])
+}
+
+enum PayrollStatus {
+  GENERATED
+  PAID
+}
+
+model PayrollItem {
+  id          Int      @id @default(autoincrement())
+  payrollId   Int
+  label       String
+  amount      Float
+  type        PayrollItemType
+
+  payroll     Payroll  @relation("PayrollItems",fields: [payrollId], references: [id])
+}
+
+enum PayrollItemType {
+  EARNING
+  DEDUCTION
+}
+
