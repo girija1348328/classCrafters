@@ -12,7 +12,7 @@ function initSocket(server) {
 
   io.use(async (socket, next) => {
     try {
-      const token = socket.handshake.auth?.token;
+      const token = socket.handshake.headers?.token;
       if (!token) return next(new Error("Unauthorized"));
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);

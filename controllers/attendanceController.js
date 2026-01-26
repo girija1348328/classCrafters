@@ -128,6 +128,7 @@ exports.staffPunchIn = async (req, res) => {
                 log
             });
         }
+        console.log("id",id)
 
         const whereQuery = {};
         if (staffRegId) {
@@ -146,6 +147,7 @@ exports.staffPunchIn = async (req, res) => {
                 log
             });
         }
+        console.log("staffRegd",staffRegd)
 
         const now = new Date();
 
@@ -433,7 +435,7 @@ exports.getStudentAttendance = async (req, res) => {
             meta,
             log
         });
-    } catch (ex) {
+    } catch (err) {
         log.error(err, "Unexpected error occurred while fetching student attendance.");
 
         if (err.code === "P1001") {
@@ -515,6 +517,82 @@ exports.getStaffAttendance = async (req, res) => {
         });
     } catch (err) {
         log.error(err, "Unexpected error occurred while fetching staff attendance.");
+
+        if (err.code === "P1001") {
+            return sendResponse({
+                res,
+                status: 503,
+                tag: "databaseUnavailable",
+                message: "Database connection failed. Please try again later.",
+                log
+            });
+        }
+
+        return sendResponse({
+            res,
+            status: 500,
+            tag: "serverError",
+            message: "An internal server error occurred.",
+            log
+        });
+    }
+}
+
+exports.getMyPunchInAttendance = async (req, res) => {
+    const log = logger.child({
+        handler: "AttendanceController.getMyPunchInAttendance",
+        query: req.query
+    });
+    try {
+        const { id } = req.user;
+
+        const staffRegd = await prisma.staffRegistration.findFirst({ where: {user_id: id} });
+        if (!staffRegd) {
+            return sendResponse({
+                res,
+                status: 404,
+                tag: "notFound",
+                message: "No staff found with the specified regd. id.",
+                log
+            });
+        }
+        const where = {
+            staffRegId: staffRegd.id,
+            punchOutTime: null
+        };
+
+        // if (startDate || endDate) {
+        //     where.updatedAt = {};
+
+        //     if (startDate) {
+        //         where.updatedAt.gte = new Date(startDate);
+        //     }
+
+        //     if (endDate) {
+        //         where.updatedAt.lte = new Date(endDate);
+        //     }
+        // }
+
+        const staffAttendance = await prisma.staffAttendance.findFirst({
+            where,
+            include: {
+                staffReg: true,
+                institution: true,
+                punchInBy: true,
+                punchOutBy: true,
+            }
+        });
+
+        return sendResponse({
+            res,
+            status: 200,
+            tag: "success",
+            message: "My punch in attendance retrieved successfully.",
+            data: { staffAttendance },
+            log
+        });
+    } catch (err) {
+        log.error(err, "Unexpected error occurred in getMyPunchInAttendance.");
 
         if (err.code === "P1001") {
             return sendResponse({

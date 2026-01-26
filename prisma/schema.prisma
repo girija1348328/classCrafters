@@ -53,6 +53,9 @@ model User {
   enquiry Enquiry[]
 
 
+
+  leaveRequests LeaveRequest[] @relation("LeaveApplicant")
+  leaveReviews  LeaveRequest[] @relation("LeaveReviewer")
 }
 
 model EducationType {
@@ -319,6 +322,8 @@ model Classroom {
   name String
 
   subject String?
+
+  section String?
 
   description String?
 

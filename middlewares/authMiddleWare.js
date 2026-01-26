@@ -6,6 +6,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'a_strong_secret_for_jwt';
 
 module.exports = async function (req, res, next) {
   try {
+    console.log("req.url",req.url)
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
