@@ -7,108 +7,163 @@ const { isJSON } = require("../utils/helper");
 // Create Student Registration
 exports.create = async (req, res) => {
   const log = logger.child({
-    handler: "StudentRegistrationController.create",
-    body: req.body
+    handler: "StudentRegistrationController.create"
   });
-  try {
-    const { user_id, institution_id, phase_id, subgroup_id, custom_data } = req.body;
 
-    console.log(typeof user_id, typeof institution_id, typeof phase_id, typeof subgroup_id);
-    if (!user_id || !institution_id || !phase_id || !subgroup_id) {
+  try {
+    const { student, parent, registration, documents } = req.body;
+
+    // =========================
+    // 1️⃣ BASIC VALIDATION
+    // =========================
+    if (!student || !registration) {
       return sendResponse({
         res,
         status: 400,
         tag: "missingField",
-        message: "User ID, Institution ID, Phase ID, and Subgroup ID are required.",
+        message: "Student and Registration data are required.",
         log
       });
     }
 
-    const userExists = await prisma.user.findUnique({ where: { id: user_id } });
-    if (!userExists) {
+    const {
+      academic_sessionId,
+      classroom_id,
+      section_id,
+      user_id,
+      institution_id,
+      phase_id,
+      subgroup_id,
+      rollNumber,
+      status,
+      custom_data
+    } = registration;
+
+    if (
+      !academic_sessionId ||
+      !classroom_id ||
+      !section_id ||
+      !user_id ||
+      !institution_id ||
+      !phase_id ||
+      !subgroup_id ||
+      !status
+    ) {
       return sendResponse({
         res,
-        status: 404,
-        tag: "userNotFound",
-        message: "A user with this ID does not exist.",
+        status: 400,
+        tag: "missingField",
+        message:
+          "Academic session, class, section, user, institution, phase, subgroup and status are required.",
         log
       });
     }
 
-    const institutionExists = await prisma.institution.findUnique({
-      where: { id: institution_id },
-    });
-    if (!institutionExists) {
-      return sendResponse({
-        res,
-        status: 404,
-        tag: "institutionNotFound",
-        message: "An institution with this ID does not exist.",
-        log
+    // =========================
+    // 2️⃣ FOREIGN KEY CHECKS
+    // =========================
+    const [
+      userExists,
+      institutionExists,
+      phaseExists,
+      subgroupExists
+    ] = await Promise.all([
+      prisma.user.findUnique({ where: { id: user_id } }),
+      prisma.institution.findUnique({ where: { id: institution_id } }),
+      prisma.phase.findUnique({ where: { id: phase_id } }),
+      prisma.subGroup.findUnique({ where: { id: subgroup_id } })
+    ]);
+
+    if (!userExists)
+      return sendResponse({ res, status: 404, tag: "userNotFound", message: "User not found", log });
+
+    if (!institutionExists)
+      return sendResponse({ res, status: 404, tag: "institutionNotFound", message: "Institution not found", log });
+
+    if (!phaseExists)
+      return sendResponse({ res, status: 404, tag: "phaseNotFound", message: "Phase not found", log });
+
+    if (!subgroupExists)
+      return sendResponse({ res, status: 404, tag: "subgroupNotFound", message: "Subgroup not found", log });
+
+    // =========================
+    // 3️⃣ TRANSACTION (CORE)
+    // =========================
+    const result = await prisma.$transaction(async (tx) => {
+
+      // ➤ Create Student
+      const newStudent = await tx.student.create({
+        data: {
+          ...student,
+          dob: new Date(student.dob)
+        }
       });
-    }
 
-    const phaseExists = await prisma.phase.findUnique({
-      where: { id: phase_id },
-    });
-    if (!phaseExists) {
-      return sendResponse({
-        res,
-        status: 404,
-        tag: "phaseNotFound",
-        message: "A phase with this ID does not exist.",
-        log
+      // ➤ Create Parent (optional)
+      if (parent) {
+        await tx.Parent.create({
+          data: {
+            ...parent,
+            studentId: newStudent.id
+          }
+        });
+      }
+
+      // ➤ Create Student Registration
+      const newRegistration = await tx.studentRegistration.create({
+        data: {
+          student_id: newStudent.id,
+          rollNumber,
+          academic_sessionId,
+          classroom_id,
+          section_id,
+          user_id,
+          institution_id,
+          phase_id,
+          subgroup_id,
+          status,
+          custom_data: custom_data ?? null
+        }
       });
-    }
 
-    const subgroupExists = await prisma.subGroup.findUnique({
-      where: { id: subgroup_id },
-    });
-    if (!subgroupExists) {
-      return sendResponse({
-        res,
-        status: 404,
-        tag: "subgroupNotFound",
-        message: "A subgroup with this ID does not exist.",
-        log
-      });
-    }
+      // ➤ Create Documents (optional)
+      if (documents?.length) {
+        await tx.studentDocument.createMany({
+          data: documents.map(doc => ({
+            ...doc,
+            studentId: newStudent.id
+          }))
+        });
+      }
 
-    const registration = await prisma.studentRegistration.create({
-      data: {
-        user_id,
-        institution_id,
-        phase_id,
-        subgroup_id,
-        custom_data: custom_data || null,
-      },
-      include: {
-        user: true,
-        institution: true,
-        phase: true,
-        subgroup: true,
-      },
+      return {
+        student: newStudent,
+        registration: newRegistration
+      };
     });
 
+    // =========================
+    // 4️⃣ SUCCESS RESPONSE
+    // =========================
     return sendResponse({
       res,
       status: 201,
       tag: "success",
-      message: "Student has been successfully registered in the system.",
-      data: {
-        registration
-      },
+      message: "Student registered successfully.",
+      data: result,
       log
     });
-  } catch (err) {
-    log.error(err, "Unexpected error during student registration.");
 
-    if (err.code === "P1001") {
+  } catch (err) {
+    log.error(err, "Student registration failed");
+
+    // Prisma known errors
+    if (err.code === "P2002") {
       return sendResponse({
         res,
-        status: 503,
-        tag: "databaseUnavailable",
-        message: "Database connection failed. Please try again later.",
+        status: 409,
+        tag: "duplicateEntry",
+        message: "Duplicate entry detected.",
         log
       });
     }
@@ -117,11 +172,13 @@ exports.create = async (req, res) => {
       res,
       status: 500,
       tag: "serverError",
-      message: "An internal server error occurred.",
+      message: "Internal server error",
       log
     });
   }
 };
+
+
 
 // Get All Student Registrations
 exports.getAll = async (req, res) => {
