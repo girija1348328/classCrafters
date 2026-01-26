@@ -50,6 +50,9 @@ model User {
 
   quizzes  Quiz[]        @relation("AdminQuizzes")
   attempts QuizAttempt[]
+  enquiry Enquiry[]
+
+
 
   leaveRequests LeaveRequest[] @relation("LeaveApplicant")
   leaveReviews  LeaveRequest[] @relation("LeaveReviewer")
@@ -163,6 +166,16 @@ model CustomField {
 model StudentRegistration {
   id Int @id @default(autoincrement())
 
+  student_id Int
+
+  rollNumber Int?
+
+  academic_sessionId Int
+
+  classroom_id Int
+
+  section_id Int
+
   user_id Int
 
   institution_id Int
@@ -173,6 +186,14 @@ model StudentRegistration {
 
   custom_data Json?
 
+  student Student @relation(fields: [student_id], references: [id])
+
+  academicSession   AcademicSession  @relation(fields: [academic_sessionId], references: [id])
+
+  class             Classroom           @relation(fields: [classroom_id], references: [id])
+
+  section           Section          @relation(fields: [section_id], references: [id])
+
   user User @relation(fields: [user_id], references: [id])
 
   institution Institution @relation(fields: [institution_id], references: [id])
@@ -181,6 +202,8 @@ model StudentRegistration {
 
   subgroup SubGroup @relation(fields: [subgroup_id], references: [id])
 
+  status AdmissionStatus
+
   feeAssignments FeeAssignment[]
 
   feePayments FeePayment[]
@@ -188,6 +211,92 @@ model StudentRegistration {
   studentAttendance StudentAttendance[]
 
   created_at DateTime @default(now())
+}
+
+
+model Student{
+  id Int @id @default(autoincrement())
+  admissionNo Int @unique
+  firstName String
+  lastName String 
+  gender Gender
+  dob DateTime
+  bloodGroup String
+  email 
+  phone String
+  address String
+
+  parent Parent?
+  admissions StudentRegistration[]
+  documents StudentDocument[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+}
+
+model StudentDocument {
+  id          Int          @id @default(autoincrement())
+  studentId   Int
+  type        DocumentType
+  fileUrl     String
+  student     Student      @relation(fields: [studentId], references: [id])
+  uploadedAt  DateTime     @default(now())
+}
+
+model Parent{
+  id Int @id @default(autoincrement())
+  studentId Int @unique
+  fatherName     String?
+  motherName     String?
+  guardianName   String
+  phone          String
+  email          String?
+  occupation     String?
+  annualIncome   Float?
+  student        Student @relation(fields: [studentId], references: [id])
+  createdAt      DateTime @default(now())
+
+}
+
+model AcademicSession {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique   // e.g. 2025-2026
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(false)
+
+  admissions StudentRegistration[]
+}
+
+model Section {
+  id      Int    @id @default(autoincrement())
+  name    String // A, B, C
+  classId Int
+
+  class   Classroom  @relation(fields: [classId], references: [id])
+  admissions StudentRegistration[]
+
+  @@unique([classId, name])
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum AdmissionStatus {
+  APPLIED
+  APPROVED
+  REJECTED
+}
+
+enum DocumentType {
+  AADHAR
+  BIRTH_CERTIFICATE
+  TRANSFER_CERTIFICATE
+  OTHER
 }
 
 model StaffRegistration {
@@ -225,6 +334,10 @@ model Classroom {
 
   teacher User @relation(fields: [teacherId], references: [id])
 
+  section Section[]
+
+  student StudentRegistration[]
+
   students ClassroomStudent[]
 
   assignments Assignment[]
@@ -232,6 +345,8 @@ model Classroom {
   studentAttendance StudentAttendance[]
 
   quizzes Quiz[]
+
+  enquiry Enquiry[]
 
   createdAt DateTime @default(now())
 
@@ -822,13 +937,110 @@ enum LeaveStatus {
   APPROVED
   REJECTED
   CANCELLED
+
+model Enquiry {
+  id                Int       @id @default(autoincrement())
+
+  name              String
+  phone             String
+  email             String?
+  address           String?
+  description       String?
+
+  status            EnquiryStatus @default(NEW)
+  source            EnquirySource?
+
+  enquiryDate       DateTime  @default(now())
+  nextFollowUpDate  DateTime?
+
+  assignedUserId    Int
+  classroomId       Int
+
+  assignedUser      User      @relation(fields: [assignedUserId], references: [id])
+  classroom         Classroom @relation(fields: [classroomId], references: [id])
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
 
-enum LeaveType {
-  SICK
-  CASUAL
-  PAID
-  UNPAID
-  EMERGENCY
+
+enum EnquiryStatus {
+  NEW
+  CONTACTED
+  FOLLOW_UP
+  CONVERTED
+  CLOSED
 }
+
+enum EnquirySource {
+  WEBSITE
+  WALK_IN
+  PHONE
+  WHATSAPP
+  REFERRAL
+}
+
+
+model VisitorBook {
+  id Int @id @default(autoincrement())
+  purpose String 
+  meetingWith MeetingWithRole @default(STAFF)
+  visitorName String
+  phone String
+  idCard String
+  numberOfPerson Int
+  date DateTime
+  inTime DateTime @default(now())
+  outTime DateTime?
+  note String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+enum MeetingWithRole{
+  STAFF
+  STUDENT
+}
+
+model Dispatch{
+    id Int @id @default(autoincrement())
+    referenceNo Int
+    address String
+    note String
+    fromTitle String
+    date DateTime
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+}
+
+model Receive{
+    id Int @id @default(autoincrement())
+    referenceNo Int
+    address String
+    note String
+    toTitle String
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+}
+
+model Complain{
+    id Int @id @default(autoincrement())
+    complaint complaintType @default(MISBEHAVE)
+    source String
+    complainBy String
+    phone String
+    date DateTime @default(now())
+    description String
+    actionTaken String
+    assign String
+    note String
+    isDeleted Boolean @default(false)
+}
+
+enum complaintType {
+  EXAMLEAK
+  MISBEHAVE
+  ABUSE
+}
+
 
