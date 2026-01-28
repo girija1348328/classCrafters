@@ -47,23 +47,15 @@ exports.createEnquiry = async (req, res) => {
 ================================ */
 exports.getAllEnquiries = async (req, res) => {
     try {
-        const { status, assignedUserId } = req.query;
-
         const enquiries = await prisma.enquiry.findMany({
-            where: {
-                status: status || undefined,
-                assignedUserId: assignedUserId ? Number(assignedUserId) : undefined,
-            },
-            include: {
-                assignedUser: true,
-                classroom: true,
-            },
-            orderBy: { created_at: "desc" },
+            orderBy: { createdAt: "desc" },
         });
+        console.log("Enquiries fetched:", enquiries);
 
         res.json({ success: true, data: enquiries });
     } catch (error) {
-        res.status(500).json({ success: false, message: "Failed to fetch enquiries" });
+        console.error("GET ALL ENQUIRIES ERROR:", error);
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
