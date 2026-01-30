@@ -14,16 +14,26 @@ const {
   getStudentClassrooms,
   videoConferenceJitsi,
   videoConferenceZego,
-  getStudentsByClassroomId
+  getStudentsByClassroomId,
+  createSubject,
+  getAllSubjects,
+  getSubjectById,
+  updateSubject,
+  deleteSubject
 } = require('../controllers/classRoomController');
 const { route } = require('./authRoutes');
 
 router.get('/getStudentsByClassroomId', verifyToken, getStudentsByClassroomId);
 router.post('/', createClassroom);
+router.post('/subject/:classroomId', createSubject);
 router.get('/', getAllClassrooms);
+router.get('/allSubjects', getAllSubjects);
 router.get('/:id', getClassroomById);
 router.put('/:id', updateClassroom);
 router.delete('/:id', deleteClassroom);
+router.get('/:id/subject', getSubjectById);
+router.put('/:id/subject', updateSubject);
+router.delete('/:id/subject', deleteSubject);
 router.post('/:id/students', addStudentToClassroom);   
 router.delete('/:id/students/:studentId', removeStudentFromClassroom);
 router.get('/:id/students', getClassroomStudents);
