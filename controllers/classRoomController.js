@@ -622,23 +622,8 @@ const getAllSubjects = async (req, res) => {
                             }
                         }
                         
-                    },
-                    students: {
-                        include: {
-                            student: {
-                                select: {
-                                    id: true,
-                                    name: true,
-                                    email: true
-                                }
-                            }
-
-                        }
                     }
                 } 
-            }, 
-            orderBy: {
-                createdAt: 'desc'
             }
         });
 
