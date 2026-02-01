@@ -558,6 +558,196 @@ const getStudentsByClassroomId = async (req, res) => {
     }
 };
 
+//create subject
+const createSubject = async (req, res) => {
+  try {
+    const { name, code } = req.body;
+    const classroomId = Number(req.params.classroomId);
+
+    if (!classroomId) {
+      return res.status(400).json({ error: "classroomId is required" });
+    }
+
+    const subject = await prisma.subject.create({
+      data: {
+        name,
+        code,
+        classroomId, // ✅ REQUIRED
+      },
+      include: {
+        classroom: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            teacherId: true,
+            teacher: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.status(201).json({
+      message: "Subject created successfully",
+      subject,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+//get all subjects
+const getAllSubjects = async (req, res) => {
+    try {
+        const subjects = await prisma.subject.findMany({
+            include: {
+                classroom: {
+                    select: {
+                        id: true,
+                        name: true,
+                        description: true,
+                        teacherId: true,
+                        teacher: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true
+                            }
+                        }
+                        
+                    }
+                } 
+            }
+        });
+
+        res.json({ subjects });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+//get subject by id
+const getSubjectById = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const subject = await prisma.subject.findUnique({
+            where: { id: parseInt(id) },
+            include: {
+                classroom: {
+                    select: {
+                        id: true,
+                        name: true,
+                        description: true,
+                        teacherId: true,
+                        teacher: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true
+                            }
+                        }
+                    },
+                    students: {
+                        include: {
+                            student: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true
+                                }
+                            }
+
+                        }
+                    }
+                } 
+            }
+        });
+
+        if (!subject) {
+            return res.status(404).json({ error: 'Subject not found' });
+        }
+        
+        res.json({ subject });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+//update subject
+const updateSubject = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name,code } = req.body;
+
+        const subject = await prisma.subject.update({
+            where: { id: parseInt(id) },
+            data: {
+                name,
+                code
+            },
+            include: {
+                classroom: {
+                    select: {
+                        id: true,
+                        name: true,
+                        description: true,
+                        teacherId: true,
+                        teacher: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true
+                            }
+                        }   
+                        
+                    },
+                    students: {
+                        include: {
+                            student: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true
+                                }
+                            }
+                            
+                        }
+                    }
+                }
+            }});
+        res.json({
+            message: 'Subject updated successfully',
+            subject
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+//delete subject
+const deleteSubject = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        await prisma.subject.delete({
+            where: { id: parseInt(id) }
+        });
+
+        res.json({ message: 'Subject deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};  
+
+
 module.exports = {
     createClassroom,
     getAllClassrooms,
@@ -571,5 +761,10 @@ module.exports = {
     getStudentClassrooms,
     videoConferenceJitsi,
     videoConferenceZego,
-    getStudentsByClassroomId
+    getStudentsByClassroomId,
+    createSubject,
+    getAllSubjects,
+    getSubjectById,
+    updateSubject,
+    deleteSubject
 };
