@@ -21,7 +21,7 @@ exports.assignFees = async (req, res) => {
       feeStructure.total_amount ||
       feeStructure.heads.reduce((sum, h) => sum + Number(h.amount), 0);
 
-      console.log("Total Amount:", totalAmount);
+    console.log("Total Amount:", totalAmount);
     // ✅ Create Assignments for each student
     const feeAssignments = await Promise.all(
       student_ids.map(async (studentId) => {
@@ -76,7 +76,7 @@ exports.getFeeAssignments = async (req, res) => {
         },
       },
       include: {
-        feeStructure: true,
+        // feeStructure: true,
         student: true,
       },
     });
@@ -90,17 +90,18 @@ exports.getFeeAssignments = async (req, res) => {
     console.error("Get Fee Assignments Error:", err);
     return res.status(500).json({ success: false, message: err.message });
   }
-};  
+};
 
 exports.getFeeAssignmentById = async (req, res) => {
   try {
     const { id } = req.params;
+    const convertInt = Number(id);
 
     const feeAssignment = await prisma.feeAssignment.findUnique({
-      where: { id },
+      where: { id: convertInt },
       include: {
-        feeStructure: true,
-        student: true,
+        fee_structure: true,
+        student_registration: true,
       },
     });
 
@@ -163,7 +164,7 @@ exports.deleteFeeAssignment = async (req, res) => {
     console.error("Delete Fee Assignment Error:", err);
     return res.status(500).json({ success: false, message: err.message });
   }
-};  
+};
 
 
 exports.collectFees = async (req, res) => {
