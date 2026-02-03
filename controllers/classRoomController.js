@@ -96,6 +96,7 @@ const getClassroomById = async (req, res) => {
         const classroom = await prisma.classroom.findUnique({
             where: { id: parseInt(id) },
             include: {
+                // name: true,
                 teacher: {
                     select: {
                         id: true,
@@ -103,17 +104,41 @@ const getClassroomById = async (req, res) => {
                         email: true
                     }
                 },
-                students: {
-                    include: {
+                student: {
+                    select: {
+                        id: true,
+                        rollNumber: true,
+                        academic_sessionId: true,
                         student: {
                             select: {
                                 id: true,
-                                name: true,
-                                email: true
+                                firstName: true,
+                                lastName: true,
+                                gender: true,
+                                email: true,
+                                dob: true,
+                                bloodGroup: true,
+
                             }
                         }
                     }
                 },
+                // student: {
+                //     include: {
+                //         // id: true,
+                //         rollNumber: true,
+                //         academic_sessionId: true,
+                //         classroom_id: true,
+                //         section_id: true,
+                //         // student: {
+                //         //     select: {
+                //         //         id: true,
+                //         //         name: true,
+                //         //         email: true
+                //         //     }
+                //         // }
+                //     }
+                // },
                 assignments: {
                     include: {
                         submissions: true

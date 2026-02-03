@@ -331,6 +331,7 @@ exports.getById = async (req, res) => {
         institution: true,
         phase: true,
         subgroup: true,
+        
       },
     });
 

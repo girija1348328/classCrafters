@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 // 1) Create Fee Structure
 exports.create = async (req, res) => {
   try {
-    const { name, code, description, phase_id, subgroup_id } = req.body;
+    const { name, code, description, phase_id, subgroup_id,total_amount } = req.body;
     const user_id = req.user.id; // from authMiddleware
 
     console.log("user_id:", user_id);
@@ -31,7 +31,7 @@ exports.create = async (req, res) => {
 
     // 🔹 Create Fee Structure
     const structure = await prisma.feeStructure.create({
-      data: { name, code, description, phase_id, subgroup_id, institution_id },
+      data: { name, code, description, phase_id, subgroup_id, institution_id,total_amount },
     });
 
     return res.status(201).json({
