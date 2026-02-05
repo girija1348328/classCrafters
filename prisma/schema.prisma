@@ -1039,6 +1039,7 @@ model Receive{
     address String
     note String
     toTitle String
+    date DateTime
     created_at DateTime @default(now())
     updated_at DateTime @updatedAt
 }
