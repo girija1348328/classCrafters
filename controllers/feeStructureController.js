@@ -21,7 +21,7 @@ exports.create = async (req, res) => {
     }) : null;
 
     const institution_id = staff?.institution_id || student?.institution_id;
-
+    console.log("institution_id:", institution_id);
     if (!institution_id) {
       return res.status(400).json({
         success: false,

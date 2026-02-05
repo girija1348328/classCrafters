@@ -67,17 +67,18 @@ exports.assignFees = async (req, res) => {
 
 exports.getFeeAssignments = async (req, res) => {
   try {
-    const { student_ids } = req.body;
+    const { student_ids } = req.query; // ✅ FIX
+
+    if (!student_ids) {
+      return res.status(400).json({
+        success: false,
+        message: "student_ids is required",
+      });
+    }
 
     const feeAssignments = await prisma.feeAssignment.findMany({
       where: {
-        student_registration_id: {
-          in: student_ids,
-        },
-      },
-      include: {
-        // feeStructure: true,
-        student: true,
+        student_registration_id: Number(student_ids), // ✅ FIX
       },
     });
 
@@ -88,9 +89,13 @@ exports.getFeeAssignments = async (req, res) => {
     });
   } catch (err) {
     console.error("Get Fee Assignments Error:", err);
-    return res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
+
 
 exports.getFeeAssignmentById = async (req, res) => {
   try {
