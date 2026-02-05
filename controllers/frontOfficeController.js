@@ -699,9 +699,9 @@ exports.updateReceivePostal = async (req, res) => {
 exports.deleteReceivePostal = async (req, res) => {
     try {
         const { id } = req.params;
-        await prisma.receive.update({
-            where: { id: Number(id) },  
-            data: { isDeleted: true }
+        await prisma.receive.delete({
+            where: { id: Number(id) }
+           
         });
         res.json({
             success: true,
@@ -823,9 +823,9 @@ exports.deleteComplaint = async (req, res) => {
     // To be implemented
     try{
         const { id } = req.params;  
-        await prisma.complain.update({
-            where: { id: Number(id) },
-            data: { isDeleted: true }
+        await prisma.complain.delete({
+            where: { id: Number(id) }
+           
         });
         res.json({
             success: true,

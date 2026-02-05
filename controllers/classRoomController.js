@@ -9,7 +9,7 @@ const { sendResponse } = require("../utils/responseLogger.js");
 // Create a new classroom
 const createClassroom = async (req, res) => {
     try {
-        const { name, subject, description, teacherId } = req.body;
+        const { name, description, teacherId } = req.body;
 
         // Check if teacher exists
         const teacher = await prisma.user.findUnique({
@@ -28,7 +28,6 @@ const createClassroom = async (req, res) => {
         const classroom = await prisma.classroom.create({
             data: {
                 name,
-                subject,
                 description,
                 teacherId: parseInt(teacherId)
             },
@@ -160,35 +159,52 @@ const getClassroomById = async (req, res) => {
 // Update classroom
 const updateClassroom = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { name, subject, description } = req.body;
+        const id = Number(req.params.id);
+        const { name, description,teacherId } = req.body;
+
+        if (!id) {
+            return res.status(400).json({
+                error: "Invalid classroom ID",
+            });
+        }
+
+        const existingClassroom = await prisma.classroom.findUnique({
+            where: { id },
+        });
+
+        if (!existingClassroom) {
+            return res.status(404).json({
+                error: "Classroom not found",
+            });
+        }
 
         const classroom = await prisma.classroom.update({
-            where: { id: parseInt(id) },
+            where: { id },
             data: {
                 name,
-                subject,
-                description
+                description,
+                teacherId,
             },
             include: {
                 teacher: {
                     select: {
                         id: true,
                         name: true,
-                        email: true
-                    }
-                }
-            }
+                        email: true,
+                    },
+                },
+            },
         });
 
         res.json({
-            message: 'Classroom updated successfully',
-            classroom
+            message: "Classroom updated successfully",
+            classroom,
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 // Delete classroom
 const deleteClassroom = async (req, res) => {
