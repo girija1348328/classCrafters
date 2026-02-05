@@ -42,7 +42,7 @@ router.post("/createComplain", verifyToken, createComplaint);
 router.get("/getComplains", verifyToken, getComplaints);
 router.get("/getComplain/:id", verifyToken, getComplaintById);
 router.put("/updateComplain/:id", verifyToken, updateComplaint);
-router.put("/deleteComplain/:id", verifyToken, deleteComplaint);
+router.delete("/deleteComplain/:id", verifyToken, deleteComplaint);
 
 
 module.exports = router;
