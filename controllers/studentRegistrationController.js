@@ -247,6 +247,7 @@ exports.getAll = async (req, res) => {
 
     const registrations = await prisma.studentRegistration.findMany({
       include: {
+        student: true,
         user: true,
         institution: true,
         phase: true,
