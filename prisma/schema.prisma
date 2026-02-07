@@ -56,9 +56,6 @@ model User {
 
   leaveRequests LeaveRequest[] @relation("LeaveApplicant")
   leaveReviews  LeaveRequest[] @relation("LeaveReviewer")
-
-  salaryStructure SalaryStructure[] @relation("StaffSalary")
-  payroll         Payroll[]         @relation("StaffPayroll")
 }
 
 model EducationType {
@@ -317,6 +314,9 @@ model StaffRegistration {
   staffAttendance StaffAttendance[]
 
   created_at DateTime @default(now())
+
+  salaryStructure SalaryStructure[] @relation("StaffSalary")
+  payroll         Payroll[]         @relation("StaffPayroll")
 }
 
 model Classroom {
@@ -874,7 +874,7 @@ model SalaryStructure {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  staff         User     @relation("StaffSalary",fields: [staffId], references: [id])
+  staff         StaffRegistration     @relation("StaffSalary",fields: [staffId], references: [id])
 }
 
 model Payroll {
@@ -888,7 +888,7 @@ model Payroll {
   status          PayrollStatus @default(GENERATED)
   generatedAt     DateTime      @default(now())
 
-  staff           User          @relation("StaffPayroll",fields: [staffId], references: [id])
+  staff           StaffRegistration          @relation("StaffPayroll",fields: [staffId], references: [id])
 
   items PayrollItem[] @relation("PayrollItems")
 
