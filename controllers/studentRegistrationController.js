@@ -60,6 +60,41 @@ exports.create = async (req, res) => {
     }
 
     // =========================
+    // 🔢 PARSE IDs (CRITICAL)
+    // =========================
+    const academicSessionId = parseInt(academic_sessionId);
+    const classroomId = parseInt(classroom_id);
+    const sectionId = parseInt(section_id);
+    const rollNum = parseInt(rollNumber);
+    const userId = parseInt(user_id);
+    const institutionId = parseInt(institution_id);
+    const phaseId = parseInt(phase_id);
+    const subgroupId = parseInt(subgroup_id);
+
+    // Validate parsed IDs
+    if (
+      [
+        academicSessionId,
+        classroomId,
+        sectionId,
+        rollNum,
+        userId,
+        institutionId,
+        phaseId,
+        subgroupId
+      ].some(Number.isNaN)
+    ) {
+      return sendResponse({
+        res,
+        status: 400,
+        tag: "invalidId",
+        message: "All IDs must be valid numbers.",
+        log
+      });
+    }
+
+
+    // =========================
     // 2️⃣ FOREIGN KEY CHECKS
     // =========================
     const [
@@ -68,10 +103,10 @@ exports.create = async (req, res) => {
       phaseExists,
       subgroupExists
     ] = await Promise.all([
-      prisma.user.findUnique({ where: { id: user_id } }),
-      prisma.institution.findUnique({ where: { id: institution_id } }),
-      prisma.phase.findUnique({ where: { id: phase_id } }),
-      prisma.subGroup.findUnique({ where: { id: subgroup_id } })
+      prisma.user.findUnique({ where: { id: userId } }),
+      prisma.institution.findUnique({ where: { id: institutionId } }),
+      prisma.phase.findUnique({ where: { id: phaseId } }),
+      prisma.subGroup.findUnique({ where: { id: subgroupId } })
     ]);
 
     if (!userExists)
@@ -86,6 +121,19 @@ exports.create = async (req, res) => {
     if (!subgroupExists)
       return sendResponse({ res, status: 404, tag: "subgroupNotFound", message: "Subgroup not found", log });
 
+
+    const admissionNo = parseInt(student.admissionNo);
+
+    // Validate admissionNo
+    if (Number.isNaN(admissionNo)) {
+      return sendResponse({
+        res,
+        status: 400,
+        tag: "invalidAdmissionNo",
+        message: "Admission number must be a valid number.",
+        log
+      });
+    }
     // =========================
     // 3️⃣ TRANSACTION (CORE)
     // =========================
@@ -95,6 +143,7 @@ exports.create = async (req, res) => {
       const newStudent = await tx.student.create({
         data: {
           ...student,
+          admissionNo,          // 👈 parsed Int
           dob: new Date(student.dob)
         }
       });
@@ -113,18 +162,19 @@ exports.create = async (req, res) => {
       const newRegistration = await tx.studentRegistration.create({
         data: {
           student_id: newStudent.id,
-          rollNumber,
-          academic_sessionId,
-          classroom_id,
-          section_id,
-          user_id,
-          institution_id,
-          phase_id,
-          subgroup_id,
+          academic_sessionId: academicSessionId,
+          classroom_id: classroomId,
+          section_id: sectionId,
+          rollNumber: rollNum,
+          user_id: userId,
+          institution_id: institutionId,
+          phase_id: phaseId,
+          subgroup_id: subgroupId,
           status,
           custom_data: custom_data ?? null
         }
       });
+
 
       // ➤ Create Documents (optional)
       if (documents?.length) {
@@ -197,6 +247,7 @@ exports.getAll = async (req, res) => {
 
     const registrations = await prisma.studentRegistration.findMany({
       include: {
+        student: true,
         user: true,
         institution: true,
         phase: true,
@@ -249,17 +300,39 @@ exports.getAll = async (req, res) => {
 exports.getById = async (req, res) => {
   const log = logger.child({
     handler: "StudentRegistrationController.getById",
-    params: req.params
+    params: req.params,
   });
+
   try {
     const id = Number(req.params.id);
+
+    if (Number.isNaN(id)) {
+      return sendResponse({
+        res,
+        status: 400,
+        tag: "invalidId",
+        message: "Invalid registration ID.",
+        log,
+      });
+    }
+
     const registration = await prisma.studentRegistration.findUnique({
       where: { id },
       include: {
+        // 👇 Student core details
+        student: {
+          include: {
+            parent: true,
+            documents: true,
+          },
+        },
+
+        // 👇 Academic / system relations
         user: true,
         institution: true,
         phase: true,
         subgroup: true,
+        
       },
     });
 
@@ -269,7 +342,7 @@ exports.getById = async (req, res) => {
         status: 404,
         tag: "notFound",
         message: "Student registration not found.",
-        log
+        log,
       });
     }
 
@@ -279,10 +352,13 @@ exports.getById = async (req, res) => {
       tag: "success",
       message: "Student registration retrieved successfully.",
       data: { registration },
-      log
+      log,
     });
   } catch (err) {
-    log.error(err, "Unexpected error occurred while fetching student registration.");
+    log.error(
+      err,
+      "Unexpected error occurred while fetching student registration."
+    );
 
     if (err.code === "P1001") {
       return sendResponse({
@@ -290,7 +366,7 @@ exports.getById = async (req, res) => {
         status: 503,
         tag: "databaseUnavailable",
         message: "Database connection failed. Please try again later.",
-        log
+        log,
       });
     }
 
@@ -299,10 +375,134 @@ exports.getById = async (req, res) => {
       status: 500,
       tag: "serverError",
       message: "An internal server error occurred.",
-      log
+      log,
     });
   }
 };
+
+
+
+exports.filterStudents = async (req, res) => {
+  const log = logger.child({
+    handler: "StudentRegistrationController.filter",
+  });
+
+  try {
+    const {
+      institution_id,
+      classroom_id,
+      section_id,
+      status,
+      page = 1,
+      limit = 20,
+    } = req.query;
+
+    // =========================
+    // 🔢 PARSE & VALIDATE QUERY
+    // =========================
+    const institutionId = institution_id ? parseInt(institution_id) : undefined;
+    const classroomId = classroom_id ? parseInt(classroom_id) : undefined;
+    const sectionId = section_id ? parseInt(section_id) : undefined;
+
+    if (
+      [institutionId, classroomId, sectionId].some(
+        (v) => v !== undefined && Number.isNaN(v)
+      )
+    ) {
+      return sendResponse({
+        res,
+        status: 400,
+        tag: "invalidQuery",
+        message: "institution_id, classroom_id and section_id must be numbers",
+        log,
+      });
+    }
+
+    const take = parseInt(limit);
+    const skip = (parseInt(page) - 1) * take;
+
+    // =========================
+    // 🧠 BUILD FILTER OBJECT
+    // =========================
+    const registrationWhere = {};
+
+    if (institutionId) registrationWhere.institution_id = institutionId;
+    if (classroomId) registrationWhere.classroom_id = classroomId;
+    if (sectionId) registrationWhere.section_id = sectionId;
+    if (status) registrationWhere.status = status;
+
+    // =========================
+    // 🔍 QUERY DATABASE
+    // =========================
+    const [students, total] = await Promise.all([
+      prisma.student.findMany({
+        where: {
+          admissions: {
+            some: registrationWhere,
+          },
+        },
+        include: {
+          admissions: {
+            where: registrationWhere,
+            include: {
+              institution: true,
+              phase: true,
+              subgroup: true,
+              user: true,
+            },
+          },
+          parent: true,
+          documents: true,
+        },
+        orderBy: {
+          created_at: "desc",
+        },
+        skip,
+        take,
+      }),
+
+      prisma.student.count({
+        where: {
+          admissions: {
+            some: registrationWhere,
+          },
+        },
+      }),
+    ]);
+
+    // =========================
+    // ✅ SUCCESS RESPONSE
+    // =========================
+    return sendResponse({
+      res,
+      status: 200,
+      tag: "success",
+      message: "Students fetched successfully",
+      data: {
+        students,
+        pagination: {
+          total,
+          page: Number(page),
+          limit: take,
+          totalPages: Math.ceil(total / take),
+        },
+      },
+      log,
+    });
+  } catch (err) {
+    log.error(err, "Failed to fetch students with filters");
+
+    return sendResponse({
+      res,
+      status: 500,
+      tag: "serverError",
+      message: "Internal server error",
+      log,
+    });
+  }
+};
+
+
 
 // Update Student Registration
 exports.update = async (req, res) => {

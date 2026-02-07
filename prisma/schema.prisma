@@ -53,7 +53,6 @@ model User {
   enquiry Enquiry[]
 
 
-
   leaveRequests LeaveRequest[] @relation("LeaveApplicant")
   leaveReviews  LeaveRequest[] @relation("LeaveReviewer")
 
@@ -222,7 +221,7 @@ model Student{
   gender Gender
   dob DateTime
   bloodGroup String
-  email 
+  email String
   phone String
   address String
 
@@ -316,6 +315,8 @@ model StaffRegistration {
 
   staffAttendance StaffAttendance[]
 
+  timetables  Timetable[]
+
   created_at DateTime @default(now())
 }
 
@@ -324,10 +325,6 @@ model Classroom {
 
   name String
 
-  subject String?
-
-  section String?
-
   description String?
 
   teacherId Int // Changed from String to Int to match User.id
@@ -335,6 +332,8 @@ model Classroom {
   teacher User @relation(fields: [teacherId], references: [id])
 
   section Section[]
+
+  subject Subject[]
 
   student StudentRegistration[]
 
@@ -348,9 +347,22 @@ model Classroom {
 
   enquiry Enquiry[]
 
+  timetables  Timetable[]
+
   createdAt DateTime @default(now())
 
   updatedAt DateTime @updatedAt
+}
+
+model Subject {
+  id Int @id @default(autoincrement())
+  classroomId Int
+  name String
+  code String
+
+  classroom Classroom @relation(fields:[classroomId],references:[id])
+  timetables Timetable[]
+
 }
 
 model ClassroomStudent {
@@ -932,15 +944,23 @@ model LeaveRequest {
   reviewedBy    User?         @relation("LeaveReviewer", fields: [reviewedById], references: [id])
 }
 
+enum LeaveType {
+  SICK
+  CASUAL
+  PAID
+  UNPAID
+  EMERGENCY
+}
+
 enum LeaveStatus {
   PENDING
   APPROVED
   REJECTED
   CANCELLED
+}
 
 model Enquiry {
   id                Int       @id @default(autoincrement())
-
   name              String
   phone             String
   email             String?
@@ -1019,6 +1039,7 @@ model Receive{
     address String
     note String
     toTitle String
+    date DateTime
     created_at DateTime @default(now())
     updated_at DateTime @updatedAt
 }
@@ -1043,4 +1064,30 @@ enum complaintType {
   ABUSE
 }
 
+model Timetable {
+  id Int @id @default(autoincrement())
+  day WeekDay
+  period Int
+  startTime  DateTime
+  endTime    DateTime
+  startDate  DateTime
 
+  classId Int
+  subjectId Int
+  teacherId Int
+
+  class Classroom @relation(fields: [classId], references: [id])
+  subject Subject @relation(fields: [subjectId], references: [id])
+  teacher StaffRegistration @relation(fields: [teacherId],references:[id])
+
+  @@unique([day, period, classId]) 
+}
+
+enum WeekDay {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}

@@ -47,23 +47,15 @@ exports.createEnquiry = async (req, res) => {
 ================================ */
 exports.getAllEnquiries = async (req, res) => {
     try {
-        const { status, assignedUserId } = req.query;
-
         const enquiries = await prisma.enquiry.findMany({
-            where: {
-                status: status || undefined,
-                assignedUserId: assignedUserId ? Number(assignedUserId) : undefined,
-            },
-            include: {
-                assignedUser: true,
-                classroom: true,
-            },
-            orderBy: { created_at: "desc" },
+            orderBy: { createdAt: "desc" },
         });
+        console.log("Enquiries fetched:", enquiries);
 
         res.json({ success: true, data: enquiries });
     } catch (error) {
-        res.status(500).json({ success: false, message: "Failed to fetch enquiries" });
+        console.error("GET ALL ENQUIRIES ERROR:", error);
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -699,9 +691,9 @@ exports.updateReceivePostal = async (req, res) => {
 exports.deleteReceivePostal = async (req, res) => {
     try {
         const { id } = req.params;
-        await prisma.receive.update({
-            where: { id: Number(id) },  
-            data: { isDeleted: true }
+        await prisma.receive.delete({
+            where: { id: Number(id) }
+           
         });
         res.json({
             success: true,
@@ -823,9 +815,9 @@ exports.deleteComplaint = async (req, res) => {
     // To be implemented
     try{
         const { id } = req.params;  
-        await prisma.complain.update({
-            where: { id: Number(id) },
-            data: { isDeleted: true }
+        await prisma.complain.delete({
+            where: { id: Number(id) }
+           
         });
         res.json({
             success: true,
