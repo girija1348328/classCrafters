@@ -1028,7 +1028,7 @@ model Dispatch{
     address String
     note String
     fromTitle String
-    date DateTime
+    date DateTime @default(now())
     created_at DateTime @default(now())
     updated_at DateTime @updatedAt
 }
@@ -1039,7 +1039,7 @@ model Receive{
     address String
     note String
     toTitle String
-    date DateTime
+    date DateTime @default(now())
     created_at DateTime @default(now())
     updated_at DateTime @updatedAt
 }
