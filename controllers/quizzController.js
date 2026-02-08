@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient,AttemptStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -11,8 +11,7 @@ export const createQuiz = async (req, res) => {
     const { classroomId } = req.params;
     const adminId = req.user.id;
 
-    console.log("Admin ID:", adminId);
-    console.log("Classroom ID:", classroomId);
+
 
     // ✅ FIXED: use teacherId instead of createdById
     const classroom = await prisma.classroom.findFirst({
