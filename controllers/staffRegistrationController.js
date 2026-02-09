@@ -58,3 +58,90 @@ exports.create = async (req, res) => {
         });
     }
 }
+
+exports.getAllStaffRegistrations = async (req, res) => {
+    try {
+        const staffRegistrations = await prisma.staffRegistration.findMany({
+            include: {
+                user: true,
+                institution: true,
+              
+               
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        });
+        res.json({ staffRegistrations });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.getStaffRegistrationById = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const staffRegistration = await prisma.staffRegistration.findUnique({
+            where: { id: parseInt(id) },
+            include: {
+                user: true,
+                institution: true,
+            },
+        });
+
+        if (!staffRegistration) {
+            return res.status(404).json({ error: 'Staff registration not found' });
+        }
+
+        res.json({ staffRegistration });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.updateStaffRegistration = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { user_id, institution_id, role_id, subgroup_id, custom_data } = req.body;
+
+        const staffRegistration = await prisma.staffRegistration.update({
+            where: { id: parseInt(id) },
+            data: {
+                user_id,
+                institution_id,
+                role_id,
+                subgroup_id,
+                custom_data
+            },
+            include: {
+                user: true,
+                institution: true,
+                role: true,
+                subgroup: true,
+                custom_data: true
+            },
+        });
+
+        res.json({
+            message: 'Staff registration updated successfully',
+            staffRegistration
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.deleteStaffRegistration = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        await prisma.staffRegistration.delete({
+            where: { id: parseInt(id) }
+        });
+
+        res.json({ message: 'Staff registration deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};  

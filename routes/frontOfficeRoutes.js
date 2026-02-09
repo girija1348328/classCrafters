@@ -5,10 +5,10 @@ const  verifyToken  = require("../middlewares/authMiddleWare.js");
 
 const router = express.Router();
 
-// ENQUIRY ROUTES
+// ENQUIRY ROUTES - Specific before generic
 router.post("/createEnquiry", verifyToken, createEnquiry);
-router.get("/enquiries", verifyToken, getAllEnquiries);
 router.get("/enquiries/filter", verifyToken, getFilteredEnquiries);
+router.get("/enquiries", verifyToken, getAllEnquiries);
 router.get("/enquiry/:id", verifyToken, getEnquiryById);
 router.put("/enquiry/:id", verifyToken, updateEnquiry);
 router.delete("/enquiry/:id", verifyToken, deleteEnquiry);
@@ -42,7 +42,7 @@ router.post("/createComplain", verifyToken, createComplaint);
 router.get("/getComplains", verifyToken, getComplaints);
 router.get("/getComplain/:id", verifyToken, getComplaintById);
 router.put("/updateComplain/:id", verifyToken, updateComplaint);
-router.put("/deleteComplain/:id", verifyToken, deleteComplaint);
+router.delete("/deleteComplain/:id", verifyToken, deleteComplaint);
 
 
 module.exports = router;

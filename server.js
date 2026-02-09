@@ -40,6 +40,8 @@ app.use('/api/receivePostals', require('./routes/frontOfficeRoutes'));
 app.use('/api/complains', require('./routes/frontOfficeRoutes'));
 app.use('/api/leave', require('./routes/leaveRequestRoutes'));
 app.use('/api/payroll', require('./routes/payrollRoutes'));
+app.use('/api/timetable', require('./routes/timeTableRoutes'));
+
 
 app.get('/', (req, res) => {
   res.send('Education Portal API is running...');

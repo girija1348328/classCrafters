@@ -4,6 +4,7 @@ const studentRegistrationController = require('../controllers/studentRegistratio
 
 router.post('/', studentRegistrationController.create);
 router.get('/', studentRegistrationController.getAll);
+router.get('/filter', studentRegistrationController.filterStudents);
 router.get('/:id', studentRegistrationController.getById);
 router.put('/:id', studentRegistrationController.update);
 router.delete('/:id', studentRegistrationController.remove);
