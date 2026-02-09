@@ -4,232 +4,235 @@ const logger = require("../config/logger");
 const { sendResponse } = require("../utils/responseLogger.js");
 
 exports.createSalaryStructure = async (req, res) => {
-    const log = logger.child({
-        handler: "PayrollController.createSalaryStructure",
-        body: req.body,
-        userId: req.user.id
+  const log = logger.child({
+    handler: "PayrollController.createSalaryStructure",
+    body: req.body,
+    userId: req.user.id
+  });
+
+  try {
+    const { staffId, basicPay, hra, allowances, deductions } = req.body;
+
+    if (!staffId || !basicPay) {
+      return sendResponse({
+        res,
+        status: 400,
+        tag: "missingField",
+        message: "staffId and basicPay are required.",
+        log
+      });
+    }
+
+    const staff = await prisma.staffRegistration.findUnique({
+      where: { id: staffId }
     });
 
-    try {
-        const { staffId, basicPay, hra, allowances, deductions } = req.body;
-
-        if (!staffId || !basicPay) {
-            return sendResponse({
-                res,
-                status: 400,
-                tag: "missingField",
-                message: "staffId and basicPay are required.",
-                log
-            });
-        }
-
-        const staff = await prisma.staffRegistration.findUnique({
-            where: { id: staffId }
-        });
-
-        if (!staff) {
-            return sendResponse({
-                res,
-                status: 404,
-                tag: "notFound",
-                message: "Staff not found.",
-                log
-            });
-        }
-
-        const existing = await prisma.salaryStructure.findUnique({
-            where: { staffId: staff.id }
-        });
-
-        if (existing) {
-            return sendResponse({
-                res,
-                status: 409,
-                tag: "alreadyExists",
-                message: "Salary structure already exists for this staff.",
-                log
-            });
-        }
-
-        const salary = await prisma.salaryStructure.create({
-            data: {
-                staffId: staff.id,
-                basicPay,
-                hra,
-                allowances,
-                deductions
-            }
-        });
-
-        return sendResponse({
-            res,
-            status: 201,
-            tag: "success",
-            message: "Salary structure created successfully.",
-            data: { salary },
-            log
-        });
-
-    } catch (err) {
-        log.error(err, "Failed to create salary structure.");
-        return sendResponse({
-            res,
-            status: 500,
-            tag: "serverError",
-            message: "Internal server error.",
-            log
-        });
+    if (!staff) {
+      return sendResponse({
+        res,
+        status: 404,
+        tag: "notFound",
+        message: "Staff not found.",
+        log
+      });
     }
+
+    const existing = await prisma.salaryStructure.findUnique({
+      where: { staffId: staff.id }
+    });
+
+    if (existing) {
+      return sendResponse({
+        res,
+        status: 409,
+        tag: "alreadyExists",
+        message: "Salary structure already exists for this staff.",
+        log
+      });
+    }
+
+    const salary = await prisma.salaryStructure.create({
+      data: {
+        staffId: staff.id,
+        basicPay,
+        hra,
+        allowances,
+        deductions
+      }
+    });
+
+    return sendResponse({
+      res,
+      status: 201,
+      tag: "success",
+      message: "Salary structure created successfully.",
+      data: { salary },
+      log
+    });
+
+  } catch (err) {
+    log.error(err, "Failed to create salary structure.");
+    return sendResponse({
+      res,
+      status: 500,
+      tag: "serverError",
+      message: "Internal server error.",
+      log
+    });
+  }
 };
 
 exports.updateSalaryStructure = async (req, res) => {
-    const log = logger.child({
-        handler: "PayrollController.updateSalaryStructure",
-        params: req.params,
-        body: req.body
+  const log = logger.child({
+    handler: "PayrollController.updateSalaryStructure",
+    params: req.params,
+    body: req.body
+  });
+
+  try {
+    const staffId = Number(req.params.staffId);
+    const { basicPay, hra, allowances, deductions } = req.body;
+
+    if (isNaN(staffId)) {
+      return sendResponse({
+        res,
+        status: 400,
+        tag: "invalidStaffId",
+        message: "Invalid staffId.",
+        log
+      });
+    }
+
+    let salary = await prisma.salaryStructure.findUnique({
+      where: { staffId }
     });
 
-    try {
-        const staffId = Number(req.params.staffId);
-        const { basicPay, hra, allowances, deductions } = req.body;
-
-        if (isNaN(staffId)) {
-            return sendResponse({
-                res,
-                status: 400,
-                tag: "invalidStaffId",
-                message: "Invalid staffId.",
-                log
-            });
-        }
-
-        let salary = await prisma.salaryStructure.findUnique({
-            where: { staffId }
-        });
-
-        if (!salary) {
-            return sendResponse({
-                res,
-                status: 404,
-                tag: "notFound",
-                message: "Salary structure not found.",
-                log
-            });
-        }
-
-        salary = await prisma.salaryStructure.update({
-            where: { staffId },
-            data: {
-                ...(basicPay && { basicPay }),
-                ...(hra && { hra }),
-                ...(allowances && { allowances }),
-                ...(deductions && { deductions })
-            }
-        });
-
-        return sendResponse({
-            res,
-            status: 200,
-            tag: "success",
-            message: "Salary structure updated successfully.",
-            data: { salary },
-            log
-        });
-
-    } catch (err) {
-        log.error(err, "Failed to update salary structure.");
-
-        if (err.code === "P2025") {
-            return sendResponse({
-                res,
-                status: 404,
-                tag: "notFound",
-                message: "Salary structure not found.",
-                log
-            });
-        }
-
-        return sendResponse({
-            res,
-            status: 500,
-            tag: "serverError",
-            message: "Internal server error.",
-            log
-        });
+    if (!salary) {
+      return sendResponse({
+        res,
+        status: 404,
+        tag: "notFound",
+        message: "Salary structure not found.",
+        log
+      });
     }
+
+    salary = await prisma.salaryStructure.update({
+      where: { staffId },
+      data: {
+        ...(basicPay && { basicPay }),
+        ...(hra && { hra }),
+        ...(allowances && { allowances }),
+        ...(deductions && { deductions })
+      }
+    });
+
+    return sendResponse({
+      res,
+      status: 200,
+      tag: "success",
+      message: "Salary structure updated successfully.",
+      data: { salary },
+      log
+    });
+
+  } catch (err) {
+    log.error(err, "Failed to update salary structure.");
+
+    if (err.code === "P2025") {
+      return sendResponse({
+        res,
+        status: 404,
+        tag: "notFound",
+        message: "Salary structure not found.",
+        log
+      });
+    }
+
+    return sendResponse({
+      res,
+      status: 500,
+      tag: "serverError",
+      message: "Internal server error.",
+      log
+    });
+  }
 };
 
 exports.getSalaryStructure = async (req, res) => {
-    const log = logger.child({
-        handler: "PayrollController.getSalaryStructure",
-        params: req.params,
-        body: req.body
-    });
-    try {
-        const staffId = Number(req.params.staffId);
+  const log = logger.child({
+    handler: "PayrollController.getSalaryStructure",
+    params: req.params,
+    body: req.body
+  });
+  try {
+    const staffId = Number(req.params.staffId);
 
-        if (isNaN(staffId)) {
-            return sendResponse({
-                res,
-                status: 400,
-                tag: "invalidStaffId",
-                message: "Invalid staffId."
-            });
-        }
-
-        const salary = await prisma.salaryStructure.findFirst({
-            where: { staffId: Number(staffId) },
-            select: {
-                id: true,
-                basicPay: true,        // ✅ correct field
-                allowances: true,      // ✅ exists
-                deductions: true,
-                staff: {
-                    select: {
-                        id: true,
-                        user_id: true,
-                        user: {
-                            select: {
-                                id: true,
-                                name: true,
-                                email: true
-                            }
-                        }
-                    }
-                },
-                createdAt: true,
-                updatedAt: true
-            }
-        });
-
-
-        if (!salary) {
-            return sendResponse({
-                res,
-                status: 404,
-                tag: "notFound",
-                message: "Salary structure not found."
-            });
-        }
-
-        return sendResponse({
-            res,
-            status: 200,
-            tag: "success",
-            message: "Salary structure fetched successfully.",
-            data: salary
-        });
-
-    } catch (err) {
-        log.error(err, "Failed to get salary structure.");
-        return sendResponse({
-            res,
-            status: 500,
-            tag: "serverError",
-            message: "Internal server error.",
-            log
-        });
+    if (isNaN(staffId)) {
+      return sendResponse({
+        res,
+        status: 400,
+        tag: "invalidStaffId",
+        message: "Invalid staffId.",
+        log
+      });
     }
+
+    const salary = await prisma.salaryStructure.findFirst({
+      where: { staffId: Number(staffId) },
+      select: {
+        id: true,
+        basicPay: true,        // ✅ correct field
+        allowances: true,      // ✅ exists
+        deductions: true,
+        staff: {
+          select: {
+            id: true,
+            user_id: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
+          }
+        },
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+
+
+    if (!salary) {
+      return sendResponse({
+        res,
+        status: 404,
+        tag: "notFound",
+        message: "Salary structure not found.",
+        log
+      });
+    }
+
+    return sendResponse({
+      res,
+      status: 200,
+      tag: "success",
+      message: "Salary structure fetched successfully.",
+      data: { salary },
+      log
+    });
+
+  } catch (err) {
+    log.error(err, "Failed to get salary structure.");
+    return sendResponse({
+      res,
+      status: 500,
+      tag: "serverError",
+      message: "Internal server error.",
+      log
+    });
+  }
 };
 
 // exports.getMySalaryStructure = async (req, res) => {
@@ -289,7 +292,11 @@ exports.getSalaryStructure = async (req, res) => {
    GENERATE PAYROLL
 ========================= */
 exports.generatePayroll = async (req, res) => {
-  const log = logger.child({ handler: "Payroll.generate", body: req.body });
+  const log = logger.child({
+    handler: "PayrollController.generatePayroll",
+    body: req.body,
+    userId: req.user.id
+  });
 
   try {
     const { staffId, month, year } = req.body;
@@ -453,35 +460,54 @@ exports.getMyPayroll = async (req, res) => {
    GET PAYROLL FOR STAFF
 ========================= */
 exports.getPayrollForStaff = async (req, res) => {
-  const staffId = Number(req.params.staffId);
-  const { month, year } = req.query;
-
-  const payroll = await prisma.payroll.findUnique({
-    where: {
-      staffId_month_year: {
-        staffId,
-        month: Number(month),
-        year: Number(year)
-      }
-    },
-    include: { items: true }
+  const log = logger.child({
+    handler: "PayrollController.getPayrollForStaff",
+    params: req.params,
+    body: req.body
   });
+  try {
+    const staffId = Number(req.params.staffId);
+    const { month, year } = req.query;
 
-  if (!payroll) {
+    const payroll = await prisma.payroll.findUnique({
+      where: {
+        staffId_month_year: {
+          staffId,
+          month: Number(month),
+          year: Number(year)
+        }
+      },
+      include: { items: true }
+    });
+
+    if (!payroll) {
+      return sendResponse({
+        res,
+        status: 404,
+        tag: "notFound",
+        message: "Payroll not found",
+        log
+      });
+    }
+
     return sendResponse({
       res,
-      status: 404,
-      tag: "notFound",
-      message: "Payroll not found"
+      status: 200,
+      tag: "success",
+      data: { payroll },
+      log
+    });
+
+  } catch (err) {
+    log.error(err);
+    return sendResponse({
+      res,
+      status: 500,
+      tag: "serverError",
+      message: "Internal server error.",
+      log
     });
   }
-
-  return sendResponse({
-    res,
-    status: 200,
-    tag: "success",
-    data: payroll
-  });
 };
 
 /* =========================
