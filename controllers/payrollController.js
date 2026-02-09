@@ -177,16 +177,17 @@ exports.getSalaryStructure = async (req, res) => {
             });
         }
 
-        const salary = await prisma.salaryStructure.findUnique({
-            where: { staffId },
-            include: {
+        const salary = await prisma.salaryStructure.findFirst({
+            where: { staffId: Number(staffId) },
+            select: {
+                id: true,
+                basicPay: true,        // ✅ correct field
+                allowances: true,      // ✅ exists
+                deductions: true,
                 staff: {
                     select: {
                         id: true,
                         user_id: true,
-                        user: 1
-                    },
-                    include: {
                         user: {
                             select: {
                                 id: true,
@@ -195,9 +196,12 @@ exports.getSalaryStructure = async (req, res) => {
                             }
                         }
                     }
-                }
+                },
+                createdAt: true,
+                updatedAt: true
             }
         });
+
 
         if (!salary) {
             return sendResponse({
@@ -227,4 +231,448 @@ exports.getSalaryStructure = async (req, res) => {
         });
     }
 };
+
+// exports.getMySalaryStructure = async (req, res) => {
+//   const staffId = req.user.id;
+
+//   const salary = await prisma.salaryStructure.findUnique({
+//     where: { staffId }
+//   });
+
+//   if (!salary) {
+//     return sendResponse({
+//       res,
+//       status: 404,
+//       tag: "notFound",
+//       message: "Salary structure not defined."
+//     });
+//   }
+
+//   return sendResponse({
+//     res,
+//     status: 200,
+//     tag: "success",
+//     message: "Salary structure fetched successfully.",
+//     data: salary
+//   });
+// };
+
+// exports.deleteSalaryStructure = async (req, res) => {
+//   const staffId = Number(req.params.staffId);
+
+//   const payrollExists = await prisma.payroll.findFirst({
+//     where: { staffId }
+//   });
+
+//   if (payrollExists) {
+//     return sendResponse({
+//       res,
+//       status: 400,
+//       tag: "cannotDelete",
+//       message: "Cannot delete salary structure after payroll generation."
+//     });
+//   }
+
+//   await prisma.salaryStructure.delete({
+//     where: { staffId }
+//   });
+
+//   return sendResponse({
+//     res,
+//     status: 200,
+//     tag: "success",
+//     message: "Salary structure deleted successfully."
+//   });
+// };
+
+/* =========================
+   GENERATE PAYROLL
+========================= */
+exports.generatePayroll = async (req, res) => {
+  const log = logger.child({ handler: "Payroll.generate", body: req.body });
+
+  try {
+    const { staffId, month, year } = req.body;
+
+    if (!staffId || !month || !year) {
+      return sendResponse({
+        res,
+        status: 400,
+        tag: "missingField",
+        message: "staffId, month and year are required",
+        log
+      });
+    }
+
+    // Prevent duplicate payroll
+    const exists = await prisma.payroll.findUnique({
+      where: {
+        staffId_month_year: {
+          staffId,
+          month,
+          year
+        }
+      }
+    });
+
+    if (exists) {
+      return sendResponse({
+        res,
+        status: 409,
+        tag: "alreadyExists",
+        message: "Payroll already generated for this period",
+        log
+      });
+    }
+
+    // Fetch salary structure
+    const salary = await prisma.salaryStructure.findUnique({
+      where: { staffId }
+    });
+
+    if (!salary) {
+      return sendResponse({
+        res,
+        status: 404,
+        tag: "salaryNotFound",
+        message: "Salary structure not defined",
+        log
+      });
+    }
+
+    const grossSalary =
+      salary.basicPay +
+      (salary.hra || 0) +
+      (salary.allowances || 0);
+
+    const fixedDeduction = salary.deductions || 0;
+
+    // 🔴 Attendance-based deductions should come here later
+    const totalDeductions = fixedDeduction;
+    const netSalary = grossSalary - totalDeductions;
+
+    const payroll = await prisma.payroll.create({
+      data: {
+        staffId,
+        month,
+        year,
+        grossSalary,
+        totalDeductions,
+        netSalary
+      }
+    });
+
+    // Create fixed deduction item
+    if (fixedDeduction > 0) {
+      await prisma.payrollItem.create({
+        data: {
+          payrollId: payroll.id,
+          label: "Fixed deductions",
+          amount: fixedDeduction,
+          type: "DEDUCTION"
+        }
+      });
+    }
+
+    return sendResponse({
+      res,
+      status: 201,
+      tag: "success",
+      message: "Payroll generated successfully",
+      data: payroll,
+      log
+    });
+
+  } catch (err) {
+    log.error(err);
+    return sendResponse({
+      res,
+      status: 500,
+      tag: "serverError",
+      message: "Internal server error",
+      log
+    });
+  }
+};
+
+/* =========================
+   PAYROLL HISTORY (ADMIN)
+========================= */
+exports.getPayrollHistory = async (req, res) => {
+  const payrolls = await prisma.payroll.findMany({
+    include: {
+      staff: true
+    },
+    orderBy: { generatedAt: "desc" }
+  });
+
+  return sendResponse({
+    res,
+    status: 200,
+    tag: "success",
+    data: payrolls
+  });
+};
+
+/* =========================
+   GET MY PAYROLL
+========================= */
+exports.getMyPayroll = async (req, res) => {
+  const staffId = req.user.staffReg.id;
+  const { month, year } = req.query;
+
+  const payroll = await prisma.payroll.findUnique({
+    where: {
+      staffId_month_year: {
+        staffId,
+        month: Number(month),
+        year: Number(year)
+      }
+    },
+    include: { items: true }
+  });
+
+  if (!payroll) {
+    return sendResponse({
+      res,
+      status: 404,
+      tag: "notFound",
+      message: "Payroll not found"
+    });
+  }
+
+  return sendResponse({
+    res,
+    status: 200,
+    tag: "success",
+    data: payroll
+  });
+};
+
+/* =========================
+   GET PAYROLL FOR STAFF
+========================= */
+exports.getPayrollForStaff = async (req, res) => {
+  const staffId = Number(req.params.staffId);
+  const { month, year } = req.query;
+
+  const payroll = await prisma.payroll.findUnique({
+    where: {
+      staffId_month_year: {
+        staffId,
+        month: Number(month),
+        year: Number(year)
+      }
+    },
+    include: { items: true }
+  });
+
+  if (!payroll) {
+    return sendResponse({
+      res,
+      status: 404,
+      tag: "notFound",
+      message: "Payroll not found"
+    });
+  }
+
+  return sendResponse({
+    res,
+    status: 200,
+    tag: "success",
+    data: payroll
+  });
+};
+
+/* =========================
+   MARK PAYROLL AS PAID
+========================= */
+exports.markPayrollPaid = async (req, res) => {
+  const payrollId = Number(req.params.id);
+
+  const payroll = await prisma.payroll.update({
+    where: { id: payrollId },
+    data: { status: "PAID" }
+  });
+
+  return sendResponse({
+    res,
+    status: 200,
+    tag: "success",
+    message: "Payroll marked as PAID",
+    data: payroll
+  });
+};
+
+/* =========================
+   PAYROLL SUMMARY
+========================= */
+exports.getSummary = async (req, res) => {
+  const { month, year } = req.query;
+
+  const payrolls = await prisma.payroll.findMany({
+    where: {
+      month: Number(month),
+      year: Number(year)
+    }
+  });
+
+  const summary = {
+    totalPayrolls: payrolls.length,
+    paid: payrolls.filter(p => p.status === "PAID").length,
+    pending: payrolls.filter(p => p.status === "GENERATED").length,
+    totalNetSalary: payrolls.reduce((s, p) => s + p.netSalary, 0)
+  };
+
+  return sendResponse({
+    res,
+    status: 200,
+    tag: "success",
+    data: summary
+  });
+};
+
+/* =========================
+   ADD PAYROLL ITEM
+========================= */
+exports.addItem = async (req, res) => {
+  const payrollId = Number(req.params.payrollId);
+  const { label, amount, type } = req.body;
+
+  const payroll = await prisma.payroll.findUnique({
+    where: { id: payrollId }
+  });
+
+  if (payroll.status === "PAID") {
+    return sendResponse({
+      res,
+      status: 400,
+      tag: "payrollLocked",
+      message: "Cannot modify PAID payroll"
+    });
+  }
+
+  const item = await prisma.payrollItem.create({
+    data: { payrollId, label, amount, type }
+  });
+
+  await recalcPayroll(payrollId);
+
+  return sendResponse({
+    res,
+    status: 201,
+    tag: "success",
+    data: item
+  });
+};
+
+/* =========================
+   GET PAYROLL ITEMS
+========================= */
+exports.getItems = async (req, res) => {
+  const payrollId = Number(req.params.payrollId);
+
+  const items = await prisma.payrollItem.findMany({
+    where: { payrollId }
+  });
+
+  return sendResponse({
+    res,
+    status: 200,
+    tag: "success",
+    data: items
+  });
+};
+
+/* =========================
+   UPDATE PAYROLL ITEM
+========================= */
+exports.updateItem = async (req, res) => {
+  const itemId = Number(req.params.id);
+  const { label, amount } = req.body;
+
+  const item = await prisma.payrollItem.findUnique({
+    where: { id: itemId },
+    include: { payroll: true }
+  });
+
+  if (item.payroll.status === "PAID") {
+    return sendResponse({
+      res,
+      status: 400,
+      tag: "payrollLocked",
+      message: "Cannot modify PAID payroll"
+    });
+  }
+
+  const updated = await prisma.payrollItem.update({
+    where: { id: itemId },
+    data: { label, amount }
+  });
+
+  await recalcPayroll(item.payrollId);
+
+  return sendResponse({
+    res,
+    status: 200,
+    tag: "success",
+    data: updated
+  });
+};
+
+/* =========================
+   DELETE PAYROLL ITEM
+========================= */
+exports.deleteItem = async (req, res) => {
+  const itemId = Number(req.params.id);
+
+  const item = await prisma.payrollItem.findUnique({
+    where: { id: itemId },
+    include: { payroll: true }
+  });
+
+  if (item.payroll.status === "PAID") {
+    return sendResponse({
+      res,
+      status: 400,
+      tag: "payrollLocked",
+      message: "Cannot modify PAID payroll"
+    });
+  }
+
+  await prisma.payrollItem.delete({ where: { id: itemId } });
+  await recalcPayroll(item.payrollId);
+
+  return sendResponse({
+    res,
+    status: 200,
+    tag: "success",
+    message: "Payroll item deleted"
+  });
+};
+
+/* =========================
+   HELPER: RECALCULATE PAYROLL
+========================= */
+async function recalcPayroll(payrollId) {
+  const items = await prisma.payrollItem.findMany({
+    where: { payrollId }
+  });
+
+  const earnings = items
+    .filter(i => i.type === "EARNING")
+    .reduce((s, i) => s + i.amount, 0);
+
+  const deductions = items
+    .filter(i => i.type === "DEDUCTION")
+    .reduce((s, i) => s + i.amount, 0);
+
+  await prisma.payroll.update({
+    where: { id: payrollId },
+    data: {
+      totalDeductions: deductions,
+      netSalary: earnings - deductions
+    }
+  });
+}
 
