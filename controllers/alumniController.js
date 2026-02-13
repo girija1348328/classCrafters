@@ -28,15 +28,18 @@ exports.createAlumni = async (req, res) => {
 
     const alumni = await prisma.alumni.create({
       data: {
-        student: {
-          connect: { id: Number(studentId) }
-        },
-        staff: {
-          connect: { id: Number(staffId) }
-        },
+        student: studentId
+          ? { connect: { id: Number(studentId) } }
+          : undefined,
+
+        staff: staffId
+          ? { connect: { id: Number(staffId) } }
+          : undefined,
+
         institution: {
           connect: { id: Number(institutionId) }
         },
+
         alumniType: AlumniType[formattedAlumniType],
         passOutYear,
         lastClass,
@@ -46,11 +49,13 @@ exports.createAlumni = async (req, res) => {
     });
 
     res.status(201).json({ success: true, alumni });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
 
 
 

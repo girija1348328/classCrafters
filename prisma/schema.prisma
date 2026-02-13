@@ -1108,8 +1108,8 @@ enum WeekDay {
 
 model Alumni {
   id Int @id @default(autoincrement())
-  studentId Int
-  staffId Int
+  studentId Int?
+  staffId Int?
   institutionId Int
 
   alumniType AlumniType
@@ -1123,8 +1123,8 @@ model Alumni {
   isVerified Boolean @default(false)
   isActive Boolean @default(false)
 
-  student StudentRegistration @relation(fields: [studentId], references: [id])
-  staff StaffRegistration @relation(fields: [staffId], references: [id])
+  student StudentRegistration? @relation(fields: [studentId], references: [id])
+  staff StaffRegistration? @relation(fields: [staffId], references: [id])
   institution Institution @relation(fields: [institutionId], references: [id])
 
   createdAt DateTime @default(now())
