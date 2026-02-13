@@ -106,6 +106,10 @@ model Institution {
 
   staffAttendance StaffAttendance[]
 
+  alumni Alumni[]
+
+  inventory Inventory[]
+
   created_at DateTime @default(now())
 
   updated_at DateTime @updatedAt
@@ -205,6 +209,10 @@ model StudentRegistration {
   feePayments FeePayment[]
 
   studentAttendance StudentAttendance[]
+
+  alumni Alumni[]
+
+  bookIssues BookIssue[]
 
   created_at DateTime @default(now())
 }
@@ -314,6 +322,10 @@ model StaffRegistration {
 
   timetables  Timetable[]
 
+  alumni Alumni[]
+
+  inventoryAllocation InventoryAllocation[]
+
   created_at DateTime @default(now())
 
   salaryStructure SalaryStructure[] @relation("StaffSalary")
@@ -348,6 +360,8 @@ model Classroom {
   enquiry Enquiry[]
 
   timetables  Timetable[]
+
+  inventoryAllocation InventoryAllocation[]
 
   createdAt DateTime @default(now())
 
@@ -1091,3 +1105,118 @@ enum WeekDay {
   FRIDAY
   SATURDAY
 }
+
+model Alumni {
+  id Int @id @default(autoincrement())
+  studentId Int?
+  staffId Int?
+  institutionId Int
+
+  alumniType AlumniType
+  passOutYear Int
+  lastClass String?
+
+  lastDesignation String?
+  currentStatus AlumniStatus @default(OTHER)
+  currentOrg String?
+
+  isVerified Boolean @default(false)
+  isActive Boolean @default(false)
+
+  student StudentRegistration? @relation(fields: [studentId], references: [id])
+  staff StaffRegistration? @relation(fields: [staffId], references: [id])
+  institution Institution @relation(fields: [institutionId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum AlumniType {
+  STUDENT
+  STAFF
+}
+
+enum AlumniStatus {
+  STUDYING
+  WORKING
+  ENTREPRENEUR
+  OTHER
+}
+
+model Book {
+  id          Int      @id @default(autoincrement())
+  title       String
+  author      String
+  category    String
+  totalCopies Int
+  available   Int
+  bookIssue   BookIssue[]
+  createdAt   DateTime @default(now())
+}
+
+model BookIssue {
+  id          Int      @id @default(autoincrement())
+  studentId   Int
+  bookId      Int
+  issueDate   DateTime
+  dueDate     DateTime
+  returnDate  DateTime?
+  fine        Float?
+  
+  student     StudentRegistration @relation(fields: [studentId], references: [id])
+  book        Book @relation(fields: [bookId], references: [id])
+}
+
+model Inventory {
+  id              Int              @id @default(autoincrement())
+  name            String
+  category        InventoryCategory
+  description     String?
+  quantity        Int
+  availableQty    Int
+  purchaseDate    DateTime?
+  purchasePrice   Float?
+  vendor          String?
+  status          InventoryStatus  @default(AVAILABLE)
+
+  institutionId   Int
+  institution     Institution      @relation(fields: [institutionId], references: [id])
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  allocations     InventoryAllocation[]
+}
+
+model InventoryAllocation {
+  id           Int        @id @default(autoincrement())
+  inventoryId  Int
+  staffId      Int?
+  classroomId  Int?
+  quantity     Int
+  allocatedAt  DateTime   @default(now())
+  returnedAt   DateTime?
+
+  inventory    Inventory  @relation(fields: [inventoryId], references: [id])
+  staff        StaffRegistration? @relation(fields: [staffId], references: [id])
+  classroom    Classroom? @relation(fields: [classroomId], references: [id])
+}
+
+
+enum InventoryCategory {
+  FURNITURE
+  ELECTRONICS
+  LAB
+  SPORTS
+  LIBRARY
+  OTHER
+}
+
+enum InventoryStatus {
+  AVAILABLE
+  IN_USE
+  DAMAGED
+  UNDER_MAINTENANCE
+  DISPOSED
+}
+
