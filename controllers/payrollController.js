@@ -288,9 +288,6 @@ exports.getSalaryStructure = async (req, res) => {
 //   });
 // };
 
-/* =========================
-   GENERATE PAYROLL
-========================= */
 exports.generatePayroll = async (req, res) => {
   const log = logger.child({
     handler: "PayrollController.generatePayroll",
@@ -402,9 +399,6 @@ exports.generatePayroll = async (req, res) => {
   }
 };
 
-/* =========================
-   PAYROLL HISTORY (ADMIN)
-========================= */
 exports.getPayrollHistory = async (req, res) => {
   const payrolls = await prisma.payroll.findMany({
     include: {
@@ -421,9 +415,6 @@ exports.getPayrollHistory = async (req, res) => {
   });
 };
 
-/* =========================
-   GET MY PAYROLL
-========================= */
 exports.getMyPayroll = async (req, res) => {
   const staffId = req.user.staffReg.id;
   const { month, year } = req.query;
@@ -456,9 +447,6 @@ exports.getMyPayroll = async (req, res) => {
   });
 };
 
-/* =========================
-   GET PAYROLL FOR STAFF
-========================= */
 exports.getPayrollForStaff = async (req, res) => {
   const log = logger.child({
     handler: "PayrollController.getPayrollForStaff",
@@ -514,20 +502,37 @@ exports.getPayrollForStaff = async (req, res) => {
    MARK PAYROLL AS PAID
 ========================= */
 exports.markPayrollPaid = async (req, res) => {
-  const payrollId = Number(req.params.id);
-
-  const payroll = await prisma.payroll.update({
-    where: { id: payrollId },
-    data: { status: "PAID" }
+  const log = logger.child({
+    handler: "PayrollController.markPayrollPaid",
+    params: req.params,
+    body: req.body
   });
+  try {
+    const payrollId = Number(req.params.id);
 
-  return sendResponse({
-    res,
-    status: 200,
-    tag: "success",
-    message: "Payroll marked as PAID",
-    data: payroll
-  });
+    const payroll = await prisma.payroll.update({
+      where: { id: payrollId },
+      data: { status: "PAID" }
+    });
+
+    return sendResponse({
+      res,
+      status: 200,
+      tag: "success",
+      message: "Payroll marked as PAID",
+      data: { payroll },
+      log
+    });
+  } catch (ex) {
+    log.error(ex);
+    return sendResponse({
+      res,
+      status: 500,
+      tag: "serverError",
+      message: "Internal server error.",
+      log
+    });
+  }
 };
 
 /* =========================
@@ -558,147 +563,249 @@ exports.getSummary = async (req, res) => {
   });
 };
 
-/* =========================
-   ADD PAYROLL ITEM
-========================= */
 exports.addItem = async (req, res) => {
-  const payrollId = Number(req.params.payrollId);
-  const { label, amount, type } = req.body;
-
-  const payroll = await prisma.payroll.findUnique({
-    where: { id: payrollId }
+  const log = logger.child({
+    handler: "PayrollController.addItem",
+    params: req.params,
+    body: req.body
   });
+  try {
+    const payrollId = Number(req.params.payrollId);
+    const { label, amount, type } = req.body;
 
-  if (payroll.status === "PAID") {
-    return sendResponse({
-      res,
-      status: 400,
-      tag: "payrollLocked",
-      message: "Cannot modify PAID payroll"
+    const payroll = await prisma.payroll.findUnique({
+      where: { id: payrollId }
     });
-  }
 
-  const item = await prisma.payrollItem.create({
-    data: { payrollId, label, amount, type }
-  });
-
-  await recalcPayroll(payrollId);
-
-  return sendResponse({
-    res,
-    status: 201,
-    tag: "success",
-    data: item
-  });
-};
-
-/* =========================
-   GET PAYROLL ITEMS
-========================= */
-exports.getItems = async (req, res) => {
-  const payrollId = Number(req.params.payrollId);
-
-  const items = await prisma.payrollItem.findMany({
-    where: { payrollId }
-  });
-
-  return sendResponse({
-    res,
-    status: 200,
-    tag: "success",
-    data: items
-  });
-};
-
-/* =========================
-   UPDATE PAYROLL ITEM
-========================= */
-exports.updateItem = async (req, res) => {
-  const itemId = Number(req.params.id);
-  const { label, amount } = req.body;
-
-  const item = await prisma.payrollItem.findUnique({
-    where: { id: itemId },
-    include: { payroll: true }
-  });
-
-  if (item.payroll.status === "PAID") {
-    return sendResponse({
-      res,
-      status: 400,
-      tag: "payrollLocked",
-      message: "Cannot modify PAID payroll"
-    });
-  }
-
-  const updated = await prisma.payrollItem.update({
-    where: { id: itemId },
-    data: { label, amount }
-  });
-
-  await recalcPayroll(item.payrollId);
-
-  return sendResponse({
-    res,
-    status: 200,
-    tag: "success",
-    data: updated
-  });
-};
-
-/* =========================
-   DELETE PAYROLL ITEM
-========================= */
-exports.deleteItem = async (req, res) => {
-  const itemId = Number(req.params.id);
-
-  const item = await prisma.payrollItem.findUnique({
-    where: { id: itemId },
-    include: { payroll: true }
-  });
-
-  if (item.payroll.status === "PAID") {
-    return sendResponse({
-      res,
-      status: 400,
-      tag: "payrollLocked",
-      message: "Cannot modify PAID payroll"
-    });
-  }
-
-  await prisma.payrollItem.delete({ where: { id: itemId } });
-  await recalcPayroll(item.payrollId);
-
-  return sendResponse({
-    res,
-    status: 200,
-    tag: "success",
-    message: "Payroll item deleted"
-  });
-};
-
-/* =========================
-   HELPER: RECALCULATE PAYROLL
-========================= */
-async function recalcPayroll(payrollId) {
-  const items = await prisma.payrollItem.findMany({
-    where: { payrollId }
-  });
-
-  const earnings = items
-    .filter(i => i.type === "EARNING")
-    .reduce((s, i) => s + i.amount, 0);
-
-  const deductions = items
-    .filter(i => i.type === "DEDUCTION")
-    .reduce((s, i) => s + i.amount, 0);
-
-  await prisma.payroll.update({
-    where: { id: payrollId },
-    data: {
-      totalDeductions: deductions,
-      netSalary: earnings - deductions
+    if (!payroll) {
+      return sendResponse({
+        res,
+        status: 404,
+        tag: "notFound",
+        message: "Payroll not found.",
+        log
+      });
     }
+
+    if (payroll.status === "PAID") {
+      return sendResponse({
+        res,
+        status: 400,
+        tag: "payrollLocked",
+        message: "Cannot modify PAID payroll",
+        log
+      });
+    }
+
+    const item = await prisma.payrollItem.create({
+      data: { payrollId, label, amount, type }
+    });
+
+    await recalcPayroll(payrollId);
+
+    return sendResponse({
+      res,
+      status: 201,
+      tag: "success",
+      message: "Payroll item added successfully",
+      data: { item },
+      log
+    });
+  } catch (ex) {
+    log.error(ex);
+    return sendResponse({
+      res,
+      status: 500,
+      tag: "serverError",
+      message: "Internal server error.",
+      log
+    });
+  }
+};
+
+exports.getItems = async (req, res) => {
+  const log = logger.child({
+    handler: "PayrollController.getItems",
+    params: req.params
   });
+  try {
+    const payrollId = Number(req.params.payrollId);
+
+    const items = await prisma.payrollItem.findMany({
+      where: { payrollId }
+    });
+
+    return sendResponse({
+      res,
+      status: 200,
+      tag: "success",
+      message: "Payroll items fetched successfully",
+      data: { items },
+      log
+    });
+  } catch (ex) {
+    log.error(ex);
+    return sendResponse({
+      res,
+      status: 500,
+      tag: "serverError",
+      message: "Internal server error.",
+      log
+    });
+  }
+};
+
+exports.updateItem = async (req, res) => {
+  const log = logger.child({
+    handler: "PayrollController.updateItem",
+    params: req.params,
+    body: req.body,
+    userId: req.user.id
+  });
+  try {
+    const itemId = Number(req.params.id);
+    const { label, amount } = req.body;
+
+    const item = await prisma.payrollItem.findUnique({
+      where: { id: itemId },
+      include: { payroll: true }
+    });
+
+    if (!item) {
+      return sendResponse({
+        res,
+        status: 404,
+        tag: "notFound",
+        message: "Payroll item not found.",
+        log
+      });
+    }
+
+    if (!item.payroll) {
+      return sendResponse({
+        res,
+        status: 404,
+        tag: "notFound",
+        message: "Payroll not found.",
+        log
+      });
+    }
+
+    if (item.payroll.status === "PAID") {
+      return sendResponse({
+        res,
+        status: 400,
+        tag: "payrollLocked",
+        message: "Cannot modify PAID payroll",
+        log
+      });
+    }
+
+    const updated = await prisma.payrollItem.update({
+      where: { id: itemId },
+      data: { label, amount }
+    });
+
+    await recalcPayroll(item.payrollId);
+
+    return sendResponse({
+      res,
+      status: 200,
+      tag: "success",
+      message: "Payroll item updated successfully",
+      data: { updated },
+      log
+    });
+  } catch (ex) {
+    log.error(ex);
+    return sendResponse({
+      res,
+      status: 500,
+      tag: "serverError",
+      message: "Internal server error.",
+      log
+    });
+  }
+};
+
+exports.deleteItem = async (req, res) => {
+  const log = logger.child({
+    handler: "PayrollController.deleteItem",
+    params: req.params,
+    userId: req.user.id
+  });
+  try {
+    const itemId = Number(req.params.id);
+
+    const item = await prisma.payrollItem.findUnique({
+      where: { id: itemId },
+      include: { payroll: true }
+    });
+
+    if (!item) {
+      return sendResponse({
+        res,
+        status: 404,
+        tag: "notFound",
+        message: "Payroll item not found.",
+        log
+      });
+    }
+
+    if (item.payroll.status === "PAID") {
+      return sendResponse({
+        res,
+        status: 400,
+        tag: "payrollLocked",
+        message: "Cannot modify PAID payroll"
+      });
+    }
+
+    await prisma.payrollItem.delete({ where: { id: itemId } });
+    await recalcPayroll(item.payrollId);
+
+    return sendResponse({
+      res,
+      status: 200,
+      tag: "success",
+      message: "Payroll item deleted",
+      log
+    });
+  } catch (ex) {
+    log.error(ex);
+    return sendResponse({
+      res,
+      status: 500,
+      tag: "serverError",
+      message: "Internal server error.",
+      log
+    });
+  }
+};
+
+async function recalcPayroll(payrollId) {
+  try {
+    const items = await prisma.payrollItem.findMany({
+      where: { payrollId }
+    });
+
+    const earnings = items
+      .filter(i => i.type === "EARNING")
+      .reduce((s, i) => s + i.amount, 0);
+
+    const deductions = items
+      .filter(i => i.type === "DEDUCTION")
+      .reduce((s, i) => s + i.amount, 0);
+
+    await prisma.payroll.update({
+      where: { id: payrollId },
+      data: {
+        totalDeductions: deductions,
+        netSalary: earnings - deductions
+      }
+    });
+  } catch (ex) {
+    console.log(ex);
+  }
 }
 
