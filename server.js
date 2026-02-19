@@ -44,6 +44,7 @@ app.use('/api/timetable', require('./routes/timeTableRoutes'));
 app.use('/api/alumnis', require('./routes/alumniRoutes'));
 app.use('/api/library', require('./routes/libraryManagementRoutes'));
 app.use('/api/inventory', require('./routes/inventoryRoutes'));
+app.use('/api/transport', require('./routes/transportRoutes'));
 
 app.get('/', (req, res) => {
   res.send('Education Portal API is running...');

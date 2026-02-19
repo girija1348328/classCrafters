@@ -214,6 +214,8 @@ model StudentRegistration {
 
   bookIssues BookIssue[]
 
+  studentTransports StudentTransport[]
+
   created_at DateTime @default(now())
 }
 
@@ -1220,3 +1222,173 @@ enum InventoryStatus {
   DISPOSED
 }
 
+
+model Vehicle {
+  id               Int            @id @default(autoincrement())
+  vehicleNumber    String         @unique
+  type             VehicleType
+  capacity         Int
+  model            String?
+  insuranceNumber  String?
+  insuranceExpiry  DateTime?
+  fitnessExpiry    DateTime?
+  status           VehicleStatus  @default(ACTIVE)
+
+  driver           Driver?
+  route            Route?
+  maintenanceLogs  VehicleMaintenance[]
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+
+model Driver {
+  id            Int          @id @default(autoincrement())
+  fullName      String
+  phone         String       @unique
+  licenseNumber String       @unique
+  licenseExpiry DateTime
+  address       String?
+  status        DriverStatus @default(ACTIVE)
+
+  vehicleId     Int?         @unique
+  vehicle       Vehicle?     @relation(fields: [vehicleId], references: [id])
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Route {
+  id          Int      @id @default(autoincrement())
+  routeName   String   @unique
+  startPoint  String
+  endPoint    String
+  distanceKm  Float?
+  vehicleId   Int?     @unique
+  vehicle     Vehicle? @relation(fields: [vehicleId], references: [id])
+
+  stops       Stop[]
+  students    StudentTransport[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+
+model Stop {
+  id        Int     @id @default(autoincrement())
+  stopName  String
+  arrivalTime String?
+  routeId   Int
+  route     Route   @relation(fields: [routeId], references: [id])
+
+  students  StudentTransport[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model StudentTransport {
+  id            Int              @id @default(autoincrement())
+  studentId     Int
+  routeId       Int
+  stopId        Int
+  pickupPoint   String?
+  dropPoint     String?
+  transportStatus TransportStatus @default(ACTIVE)
+
+  route         Route            @relation(fields: [routeId], references: [id])
+  stop          Stop             @relation(fields: [stopId], references: [id])
+  student       StudentRegistration @relation(fields: [studentId], references: [id])
+
+  attendance    TransportAttendance[]
+  payments      TransportPayment[]
+
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+
+model TransportAttendance {
+  id                 Int              @id @default(autoincrement())
+  studentTransportId Int
+  date               DateTime
+  status             AttendanceStatusTransport
+
+  studentTransport   StudentTransport @relation(fields: [studentTransportId], references: [id])
+
+  createdAt          DateTime         @default(now())
+
+  @@unique([studentTransportId, date])
+}
+
+
+model TransportPayment {
+  id                 Int              @id @default(autoincrement())
+  studentTransportId Int
+  amount             Float
+  month              String
+  year               Int
+  dueDate            DateTime
+  paymentDate        DateTime?
+  status             PaymentStatusTransport    @default(PENDING)
+
+  studentTransport   StudentTransport @relation(fields: [studentTransportId], references: [id])
+
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@unique([studentTransportId, month, year])
+}
+
+
+model VehicleMaintenance {
+  id          Int      @id @default(autoincrement())
+  vehicleId   Int
+  description String
+  cost        Float
+  serviceDate DateTime
+  nextService DateTime?
+
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+
+  createdAt   DateTime @default(now())
+}
+
+
+enum VehicleType {
+  BUS
+  VAN
+  MINI_BUS
+}
+
+enum VehicleStatus {
+  ACTIVE
+  INACTIVE
+  UNDER_MAINTENANCE
+}
+
+enum DriverStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum TransportStatus {
+  ACTIVE
+  INACTIVE
+  CANCELLED
+}
+
+enum PaymentStatusTransport {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+enum AttendanceStatusTransport {
+  PRESENT
+  ABSENT
+}
